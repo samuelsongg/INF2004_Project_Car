@@ -19,6 +19,7 @@
 #include "hardware/gpio.h"
 #include "hardware/adc.h"
 #include "hardware/pwm.h"
+#include "hardware/timer.h"
 
 #define mbaTASK_MESSAGE_BUFFER_SIZE       ( 60 )
 
@@ -40,6 +41,9 @@ const uint LEFT_WHEEL_FORWARD = 20;
 const uint LEFT_WHEEL_BACKWARD = 21;
 const uint LEFT_IR_SENSOR = 26;
 const uint RIGHT_IR_SENSOR = 27;
+const uint ULTRASONIC_TRIG = 11;
+const uint ULTRASONIC_ECHO = 10;
+const uint ULTRASONIC_VCC = 12;
 
 volatile char direction = 'w';
 
@@ -223,13 +227,60 @@ void read_ir_sensor(__unused void *params) {
     }
 }
 
+void read_ultrasonic_sensor(__unused void *params) {
+    int timeout = 26100;
+
+    gpio_init(ULTRASONIC_TRIG);
+    gpio_init(ULTRASONIC_ECHO);
+    gpio_init(ULTRASONIC_VCC);
+
+    gpio_set_dir(ULTRASONIC_TRIG, GPIO_OUT);
+    gpio_set_dir(ULTRASONIC_ECHO, GPIO_IN);
+    gpio_set_dir(ULTRASONIC_VCC, GPIO_OUT);
+
+    gpio_put(ULTRASONIC_VCC, 1);
+
+    while (true) {
+        vTaskDelay(10);
+        gpio_put(ULTRASONIC_TRIG, 1);
+       //  xTaskDelayUntil(10);
+        sleep_us(10);
+        gpio_put(ULTRASONIC_TRIG, 0);
+
+        uint64_t width = 0;
+
+        while (gpio_get(ULTRASONIC_ECHO) == 0) {
+           printf("Ultrasonic 0\n");
+        }
+
+        absolute_time_t startTime = get_absolute_time();
+
+        while (gpio_get(ULTRASONIC_ECHO) == 1) {
+            width++;
+            printf("Ultrasonic 1\n");
+            sleep_us(1);
+            if (width > timeout) {
+                printf("Return 0\n");
+            }
+        }
+
+        absolute_time_t endTime = get_absolute_time();
+
+        uint64_t final_result = absolute_time_diff_us(startTime, endTime) / 29 / 2;
+
+
+        printf("Pulse Length: %d\n", final_result);
+
+    }
+}
+
 void vLaunch(void) {
-    // TaskHandle_t getDirectionTask;
-    // xTaskCreate(get_direction, "GetDirectionThread", configMINIMAL_STACK_SIZE, NULL, 9, &getDirectionTask);
     TaskHandle_t moveWheelsTask;
     xTaskCreate(move_wheels, "MoveWheelsThread", configMINIMAL_STACK_SIZE, NULL, 7, &moveWheelsTask);
     TaskHandle_t readIrSensorTask;
     xTaskCreate(read_ir_sensor, "ReadIrSensorThread", configMINIMAL_STACK_SIZE, NULL, 8, &readIrSensorTask);
+    TaskHandle_t readUltrasonicSensorTask;
+    xTaskCreate(read_ultrasonic_sensor, "ReadUltrasonicSensorThread", configMINIMAL_STACK_SIZE, NULL, 6, &readUltrasonicSensorTask);
 
     // xControlMessageBuffer = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
     sendDataLeftIRSensorCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
