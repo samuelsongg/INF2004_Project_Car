@@ -31,13 +31,15 @@
 
 #define TEST_TASK_PRIORITY				( tskIDLE_PRIORITY + 1UL )
 
-static MessageBufferHandle_t sendDataIRSensor1CMB;
+static MessageBufferHandle_t sendDataLeftIRSensorCMB;
+static MessageBufferHandle_t sendDataRightIRSensorCMB;
 
 const uint RIGHT_WHEEL_FORWARD = 18;
 const uint RIGHT_WHEEL_BACKWARD = 19;
 const uint LEFT_WHEEL_FORWARD = 20;
 const uint LEFT_WHEEL_BACKWARD = 21;
-const uint IR_SENSOR1 = 26;
+const uint LEFT_IR_SENSOR = 26;
+const uint RIGHT_IR_SENSOR = 27;
 
 volatile char direction = 'w';
 
@@ -70,34 +72,58 @@ void move_wheels(__unused void *params) {
     gpio_set_dir(LEFT_WHEEL_FORWARD, GPIO_OUT);
     gpio_set_dir(LEFT_WHEEL_BACKWARD, GPIO_OUT);
 
-    int ir_sensor1_data = 0;
+    int left_data = 0;
+    int right_data = 0;
 
     while (true) {
         vTaskDelay(10);
 
         xMessageBufferReceive(
-            sendDataIRSensor1CMB,
-            (void *) &ir_sensor1_data,
-            sizeof(ir_sensor1_data),
+            sendDataLeftIRSensorCMB,
+            (void *) &left_data,
+            sizeof(left_data),
             portMAX_DELAY);
 
-        // Move forward.
-        if (ir_sensor1_data < 2000) {
+        xMessageBufferReceive(
+            sendDataRightIRSensorCMB,
+            (void *) &right_data,
+            sizeof(right_data),
+            portMAX_DELAY);
+
+        // Move car backwards and turn right if both sensors detect black line.
+        // Insert algo here...
+        if (left_data > 2000 && right_data > 2000) {
+            gpio_put(RIGHT_WHEEL_FORWARD, 0);
+            gpio_put(RIGHT_WHEEL_BACKWARD, 1);
+            gpio_put(LEFT_WHEEL_FORWARD, 0);
+            gpio_put(LEFT_WHEEL_BACKWARD, 1);
+
+            gpio_put(RIGHT_WHEEL_FORWARD, 0);
+            gpio_put(RIGHT_WHEEL_BACKWARD, 1);
+            gpio_put(LEFT_WHEEL_FORWARD, 1);
+            gpio_put(LEFT_WHEEL_BACKWARD, 0);
+        }  
+        // Move car forward if both sensors detect white space.
+        else if (left_data < 2000 && right_data < 2000) {
             gpio_put(RIGHT_WHEEL_FORWARD, 1);
             gpio_put(RIGHT_WHEEL_BACKWARD, 0);
             gpio_put(LEFT_WHEEL_FORWARD, 1);
             gpio_put(LEFT_WHEEL_BACKWARD, 0);  
         }
-        // Move backward.
-        else if (ir_sensor1_data > 2000) {
+        // Turn car right is left sensor detects black line.
+        else if (left_data > 2000 && right_data < 2000) {
             gpio_put(RIGHT_WHEEL_FORWARD, 0);
             gpio_put(RIGHT_WHEEL_BACKWARD, 1);
+            gpio_put(LEFT_WHEEL_FORWARD, 1);
+            gpio_put(LEFT_WHEEL_BACKWARD, 0);
+        }
+        // Turn car left if right sensor detects black line.
+        else if (right_data > 2000 && left_data < 2000) {
+            gpio_put(RIGHT_WHEEL_FORWARD, 1);
+            gpio_put(RIGHT_WHEEL_BACKWARD, 0);
             gpio_put(LEFT_WHEEL_FORWARD, 0);
             gpio_put(LEFT_WHEEL_BACKWARD, 1);
-        }
-        
-
-          
+        } 
     }
 }
 
@@ -120,48 +146,80 @@ void read_ir_sensor(__unused void *params) {
     adc_init();
     adc_set_temp_sensor_enabled(true);
 
-    gpio_init(2); // IR_Sensor1's VCC
-    gpio_init(3); // IR_Sensor1's GND
+    gpio_init(2); // LEFT_IR_Sensor's VCC
+    gpio_init(3); // LEFT_IR_Sensor's GND
+    gpio_init(4); // RIGHT_IR_Sensor's VCC
+    gpio_init(5); // RIGHT_IR_Sensor's GND
 
     gpio_set_dir(2, GPIO_OUT);
     gpio_set_dir(3, GPIO_OUT);
+    gpio_set_dir(4, GPIO_OUT);
+    gpio_set_dir(5, GPIO_OUT);
 
-    gpio_put(2, 1); // Set to high for IR_Sensor1's VCC
-    gpio_put(3, 0); // Set to low for IR_Sensor1's GND
+    gpio_put(2, 1); // Set to high for LEFT_IR_Sensor's VCC
+    gpio_put(3, 0); // Set to low for LEFT_IR_Sensor's GND
+    gpio_put(4, 1); // Set to high for RIGHT_IR_Sensor's VCC
+    gpio_put(5, 0); // Set to low for RIGHT_IR_Sensor's GND
 
-    gpio_set_dir(IR_SENSOR1, GPIO_IN); // IR Sensor
-    gpio_set_function(IR_SENSOR1, GPIO_FUNC_SIO);
+    gpio_set_dir(LEFT_IR_SENSOR, GPIO_IN); // IR Sensor
+    gpio_set_function(LEFT_IR_SENSOR, GPIO_FUNC_SIO);
+    gpio_disable_pulls(LEFT_IR_SENSOR);
+    gpio_set_input_enabled(LEFT_IR_SENSOR, false);
+    
+    gpio_set_dir(RIGHT_IR_SENSOR, GPIO_IN); // IR Sensor
+    gpio_set_function(RIGHT_IR_SENSOR, GPIO_FUNC_SIO);
+    gpio_disable_pulls(RIGHT_IR_SENSOR);
+    gpio_set_input_enabled(RIGHT_IR_SENSOR, false);
 
-    gpio_disable_pulls(IR_SENSOR1);
-    gpio_set_input_enabled(IR_SENSOR1, false);
+    int l_sum = 0;
+    static int l_data[10] = {0};
+    static int l_count = 0;
+    static int l_index = 0;
 
-    int sum = 0;
-    static int ir_sensor1_data[10] = {0};
-    static int count = 0;
-    static int index = 0;
+    int r_sum = 0;
+    static int r_data[10] = {0};
+    static int r_count = 0;
+    static int r_index = 0;
 
     while (true) {
         vTaskDelay(10);
+
         adc_select_input(0);
-        uint32_t result = adc_read();
-
-        // Calculate moving average of 10 data points.
-        sum -= ir_sensor1_data[index];
-        ir_sensor1_data[index] = result;
-        sum += ir_sensor1_data[index];
-        index = (index + 1) % 10;
+        uint32_t l_result = adc_read();
+        adc_select_input(1);
+        uint32_t r_result = adc_read();
         
-        if (count < 10) count++;
+        // Calculate moving average of 10 data points.
+        l_sum -= l_data[l_index];
+        l_data[l_index] = l_result;
+        l_sum += l_data[l_index];
+        l_index = (l_index + 1) % 10;
+        
+        r_sum -= r_data[r_index];
+        r_data[r_index] = r_result;
+        r_sum += r_data[r_index];
+        r_index = (r_index + 1) % 10;
+        
+        if (l_count < 10) l_count++;
+        if (r_count < 10) r_count++;
 
-        result = sum / count;
+        l_result = l_sum / l_count;
+        r_result = r_sum / r_count;
 
         xMessageBufferSend(
-            sendDataIRSensor1CMB,
-            (void *) &result,
-            sizeof(result),
+            sendDataLeftIRSensorCMB,
+            (void *) &l_result,
+            sizeof(l_result),
             0);
 
-        //printf("ADC Result: %d\t%d\n", result, avg);
+        xMessageBufferSend(
+            sendDataRightIRSensorCMB,
+            (void *) &r_result,
+            sizeof(r_result),
+            0);
+
+        printf("Left ADC Result: %d\n", l_result);
+        printf("Right ADC Result: %d\n", r_result);
     }
 }
 
@@ -174,7 +232,8 @@ void vLaunch(void) {
     xTaskCreate(read_ir_sensor, "ReadIrSensorThread", configMINIMAL_STACK_SIZE, NULL, 8, &readIrSensorTask);
 
     // xControlMessageBuffer = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
-    sendDataIRSensor1CMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
+    sendDataLeftIRSensorCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
+    sendDataRightIRSensorCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
 
 #if NO_SYS && configUSE_CORE_AFFINITY && configNUM_CORES > 1
     // we must bind the main task to one core (well at least while the init is called)
