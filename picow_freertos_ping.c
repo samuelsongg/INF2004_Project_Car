@@ -34,15 +34,23 @@
 
 static MessageBufferHandle_t sendDataLeftIRSensorCMB;
 static MessageBufferHandle_t sendDataRightIRSensorCMB;
+static MessageBufferHandle_t sendDataUltrasonicSensorCMB;
 
 const uint RIGHT_WHEEL_FORWARD = 18;
 const uint RIGHT_WHEEL_BACKWARD = 19;
 const uint LEFT_WHEEL_FORWARD = 20;
 const uint LEFT_WHEEL_BACKWARD = 21;
-const uint LEFT_IR_SENSOR = 26;
-const uint RIGHT_IR_SENSOR = 27;
-const uint ULTRASONIC_TRIG = 11;
+
+const uint LEFT_IR_SENSOR_A0 = 26;
+const uint LEFT_IR_SENSOR_VCC = 2;
+const uint LEFT_IR_SENSOR_GND = 3;
+const uint RIGHT_IR_SENSOR_A0 = 27;
+const uint RIGHT_IR_SENSOR_VCC = 4;
+const uint RIGHT_IR_SENSOR_GND = 5;
+const uint COLOUR_CUTOFF_VALUE = 600;
+
 const uint ULTRASONIC_ECHO = 10;
+const uint ULTRASONIC_TRIG = 11;
 const uint ULTRASONIC_VCC = 12;
 
 volatile char direction = 'w';
@@ -76,53 +84,67 @@ void move_wheels(__unused void *params) {
     gpio_set_dir(LEFT_WHEEL_FORWARD, GPIO_OUT);
     gpio_set_dir(LEFT_WHEEL_BACKWARD, GPIO_OUT);
 
-    int left_data = 0;
-    int right_data = 0;
+    int left_IR_data = 0;
+    int right_IR_data = 0;
+    int ultrasonic_data = 0;
 
     while (true) {
         vTaskDelay(10);
 
         xMessageBufferReceive(
             sendDataLeftIRSensorCMB,
-            (void *) &left_data,
-            sizeof(left_data),
+            (void *) &left_IR_data,
+            sizeof(left_IR_data),
             portMAX_DELAY);
 
         xMessageBufferReceive(
             sendDataRightIRSensorCMB,
-            (void *) &right_data,
-            sizeof(right_data),
+            (void *) &right_IR_data,
+            sizeof(right_IR_data),
             portMAX_DELAY);
 
+        xMessageBufferReceive(
+            sendDataUltrasonicSensorCMB,
+            (void *) &ultrasonic_data,
+            sizeof(ultrasonic_data),
+            portMAX_DELAY);
+
+        // Turn right if car detects obstacle in front.
+        if (ultrasonic_data <= 20) {
+            gpio_put(RIGHT_WHEEL_FORWARD, 0);
+            gpio_put(RIGHT_WHEEL_BACKWARD, 1);
+            gpio_put(LEFT_WHEEL_FORWARD, 1);
+            gpio_put(LEFT_WHEEL_BACKWARD, 0);
+        }
         // Move car backwards and turn right if both sensors detect black line.
         // Insert algo here...
-        if (left_data > 2000 && right_data > 2000) {
+        else if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data > COLOUR_CUTOFF_VALUE) {
             gpio_put(RIGHT_WHEEL_FORWARD, 0);
             gpio_put(RIGHT_WHEEL_BACKWARD, 1);
             gpio_put(LEFT_WHEEL_FORWARD, 0);
             gpio_put(LEFT_WHEEL_BACKWARD, 1);
-
+            vTaskDelay(200); // Adjust delay accordingly.
             gpio_put(RIGHT_WHEEL_FORWARD, 0);
             gpio_put(RIGHT_WHEEL_BACKWARD, 1);
             gpio_put(LEFT_WHEEL_FORWARD, 1);
             gpio_put(LEFT_WHEEL_BACKWARD, 0);
         }  
         // Move car forward if both sensors detect white space.
-        else if (left_data < 2000 && right_data < 2000) {
+        else if (left_IR_data < COLOUR_CUTOFF_VALUE && right_IR_data < COLOUR_CUTOFF_VALUE) {
             gpio_put(RIGHT_WHEEL_FORWARD, 1);
             gpio_put(RIGHT_WHEEL_BACKWARD, 0);
             gpio_put(LEFT_WHEEL_FORWARD, 1);
             gpio_put(LEFT_WHEEL_BACKWARD, 0);  
         }
         // Turn car right is left sensor detects black line.
-        else if (left_data > 2000 && right_data < 2000) {
+        else if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data < COLOUR_CUTOFF_VALUE) {
             gpio_put(RIGHT_WHEEL_FORWARD, 0);
             gpio_put(RIGHT_WHEEL_BACKWARD, 1);
             gpio_put(LEFT_WHEEL_FORWARD, 1);
             gpio_put(LEFT_WHEEL_BACKWARD, 0);
         }
         // Turn car left if right sensor detects black line.
-        else if (right_data > 2000 && left_data < 2000) {
+        else if (right_IR_data > COLOUR_CUTOFF_VALUE && left_IR_data < COLOUR_CUTOFF_VALUE) {
             gpio_put(RIGHT_WHEEL_FORWARD, 1);
             gpio_put(RIGHT_WHEEL_BACKWARD, 0);
             gpio_put(LEFT_WHEEL_FORWARD, 0);
@@ -131,6 +153,8 @@ void move_wheels(__unused void *params) {
     }
 }
 
+// Ignore for now.
+// Used in conjunction with wifi to start car.
 void get_direction(__unused void *params) {
     while (true) {
         char input_direction = getchar();
@@ -150,30 +174,30 @@ void read_ir_sensor(__unused void *params) {
     adc_init();
     adc_set_temp_sensor_enabled(true);
 
-    gpio_init(2); // LEFT_IR_Sensor's VCC
-    gpio_init(3); // LEFT_IR_Sensor's GND
-    gpio_init(4); // RIGHT_IR_Sensor's VCC
-    gpio_init(5); // RIGHT_IR_Sensor's GND
+    gpio_init(LEFT_IR_SENSOR_VCC);
+    gpio_init(LEFT_IR_SENSOR_GND);
+    gpio_init(RIGHT_IR_SENSOR_VCC);
+    gpio_init(RIGHT_IR_SENSOR_GND);
 
-    gpio_set_dir(2, GPIO_OUT);
-    gpio_set_dir(3, GPIO_OUT);
-    gpio_set_dir(4, GPIO_OUT);
-    gpio_set_dir(5, GPIO_OUT);
+    gpio_set_dir(LEFT_IR_SENSOR_VCC, GPIO_OUT);
+    gpio_set_dir(LEFT_IR_SENSOR_GND, GPIO_OUT);
+    gpio_set_dir(RIGHT_IR_SENSOR_VCC, GPIO_OUT);
+    gpio_set_dir(RIGHT_IR_SENSOR_GND, GPIO_OUT);
 
-    gpio_put(2, 1); // Set to high for LEFT_IR_Sensor's VCC
-    gpio_put(3, 0); // Set to low for LEFT_IR_Sensor's GND
-    gpio_put(4, 1); // Set to high for RIGHT_IR_Sensor's VCC
-    gpio_put(5, 0); // Set to low for RIGHT_IR_Sensor's GND
+    gpio_put(LEFT_IR_SENSOR_VCC, 1); // Set to high for LEFT_IR_Sensor's VCC
+    gpio_put(LEFT_IR_SENSOR_GND, 0); // Set to low for LEFT_IR_Sensor's GND
+    gpio_put(RIGHT_IR_SENSOR_VCC, 1); // Set to high for RIGHT_IR_Sensor's VCC
+    gpio_put(RIGHT_IR_SENSOR_GND, 0); // Set to low for RIGHT_IR_Sensor's GND
 
-    gpio_set_dir(LEFT_IR_SENSOR, GPIO_IN); // IR Sensor
-    gpio_set_function(LEFT_IR_SENSOR, GPIO_FUNC_SIO);
-    gpio_disable_pulls(LEFT_IR_SENSOR);
-    gpio_set_input_enabled(LEFT_IR_SENSOR, false);
+    gpio_set_dir(LEFT_IR_SENSOR_A0, GPIO_IN); // IR Sensor
+    gpio_set_function(LEFT_IR_SENSOR_A0, GPIO_FUNC_SIO);
+    gpio_disable_pulls(LEFT_IR_SENSOR_A0);
+    gpio_set_input_enabled(LEFT_IR_SENSOR_A0, false);
     
-    gpio_set_dir(RIGHT_IR_SENSOR, GPIO_IN); // IR Sensor
-    gpio_set_function(RIGHT_IR_SENSOR, GPIO_FUNC_SIO);
-    gpio_disable_pulls(RIGHT_IR_SENSOR);
-    gpio_set_input_enabled(RIGHT_IR_SENSOR, false);
+    gpio_set_dir(RIGHT_IR_SENSOR_A0, GPIO_IN); // IR Sensor
+    gpio_set_function(RIGHT_IR_SENSOR_A0, GPIO_FUNC_SIO);
+    gpio_disable_pulls(RIGHT_IR_SENSOR_A0);
+    gpio_set_input_enabled(RIGHT_IR_SENSOR_A0, false);
 
     int l_sum = 0;
     static int l_data[10] = {0};
@@ -222,20 +246,21 @@ void read_ir_sensor(__unused void *params) {
             sizeof(r_result),
             0);
 
-        printf("Left ADC Result: %d\n", l_result);
-        printf("Right ADC Result: %d\n", r_result);
+        // Troubleshooting purposes.
+        // printf("Left ADC Result: %d\n", l_result);
+        // printf("Right ADC Result: %d\n", r_result);
     }
 }
 
 void read_ultrasonic_sensor(__unused void *params) {
-    int timeout = 26100;
+    uint64_t timeout = 26100;
 
-    gpio_init(ULTRASONIC_TRIG);
     gpio_init(ULTRASONIC_ECHO);
+    gpio_init(ULTRASONIC_TRIG);
     gpio_init(ULTRASONIC_VCC);
 
-    gpio_set_dir(ULTRASONIC_TRIG, GPIO_OUT);
     gpio_set_dir(ULTRASONIC_ECHO, GPIO_IN);
+    gpio_set_dir(ULTRASONIC_TRIG, GPIO_OUT);
     gpio_set_dir(ULTRASONIC_VCC, GPIO_OUT);
 
     gpio_put(ULTRASONIC_VCC, 1);
@@ -243,34 +268,42 @@ void read_ultrasonic_sensor(__unused void *params) {
     while (true) {
         vTaskDelay(10);
         gpio_put(ULTRASONIC_TRIG, 1);
-       //  xTaskDelayUntil(10);
-        sleep_us(10);
+        vTaskDelay(1);
         gpio_put(ULTRASONIC_TRIG, 0);
 
         uint64_t width = 0;
+        int successful_pulse = 0;
 
         while (gpio_get(ULTRASONIC_ECHO) == 0) {
-           printf("Ultrasonic 0\n");
+            tight_loop_contents();
         }
 
-        absolute_time_t startTime = get_absolute_time();
+        absolute_time_t start_time = get_absolute_time();
 
         while (gpio_get(ULTRASONIC_ECHO) == 1) {
             width++;
-            printf("Ultrasonic 1\n");
-            sleep_us(1);
+            vTaskDelay(1);
             if (width > timeout) {
-                printf("Return 0\n");
+                successful_pulse = 0;
+            }
+            else {
+                successful_pulse = 1;
             }
         }
 
-        absolute_time_t endTime = get_absolute_time();
-
-        uint64_t final_result = absolute_time_diff_us(startTime, endTime) / 29 / 2;
-
-
-        printf("Pulse Length: %d\n", final_result);
-
+        if (successful_pulse == 1) {
+            absolute_time_t end_time = get_absolute_time();
+            uint64_t final_result = absolute_time_diff_us(start_time, end_time) / 29 / 2;
+            
+            xMessageBufferSend(
+                sendDataUltrasonicSensorCMB,
+                (void *) &final_result,
+                sizeof(final_result),
+                0);
+            
+            // Troubleshooting purposes.
+            // printf("Pulse Length: %lld\n", final_result);
+        }
     }
 }
 
@@ -282,9 +315,9 @@ void vLaunch(void) {
     TaskHandle_t readUltrasonicSensorTask;
     xTaskCreate(read_ultrasonic_sensor, "ReadUltrasonicSensorThread", configMINIMAL_STACK_SIZE, NULL, 6, &readUltrasonicSensorTask);
 
-    // xControlMessageBuffer = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
     sendDataLeftIRSensorCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
     sendDataRightIRSensorCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
+    sendDataUltrasonicSensorCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
 
 #if NO_SYS && configUSE_CORE_AFFINITY && configNUM_CORES > 1
     // we must bind the main task to one core (well at least while the init is called)
