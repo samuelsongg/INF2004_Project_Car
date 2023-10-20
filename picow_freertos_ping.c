@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2022 Raspberry Pi (Trading) Ltd.
  *
- * SPDX-License-Identifier: BSD-3-Clause
+ * SPDX-License-Identifier: BS  D-3-Clause
  */
 
 #include <stdio.h>
@@ -55,7 +55,7 @@ const uint ULTRASONIC_VCC = 12;
 
 volatile char direction = 'w';
 
-void move_wheels(__unused void *params) {
+void move_wheels(__unused void *params) {7
     gpio_set_function(14, GPIO_FUNC_PWM);
     gpio_set_function(15, GPIO_FUNC_PWM);
 
@@ -110,15 +110,16 @@ void move_wheels(__unused void *params) {
             portMAX_DELAY);
 
         // Turn right if car detects obstacle in front.
-        if (ultrasonic_data <= 20) {
-            gpio_put(RIGHT_WHEEL_FORWARD, 0);
-            gpio_put(RIGHT_WHEEL_BACKWARD, 1);
-            gpio_put(LEFT_WHEEL_FORWARD, 1);
-            gpio_put(LEFT_WHEEL_BACKWARD, 0);
-        }
+        // if (ultrasonic_data <= 20) {
+        //     gpio_put(RIGHT_WHEEL_FORWARD, 0);
+        //     gpio_put(RIGHT_WHEEL_BACKWARD, 1);
+        //     gpio_put(LEFT_WHEEL_FORWARD, 1);
+        //     gpio_put(LEFT_WHEEL_BACKWARD, 0);
+        // }
         // Move car backwards and turn right if both sensors detect black line.
         // Insert algo here...
-        else if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data > COLOUR_CUTOFF_VALUE) {
+        if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data > COLOUR_CUTOFF_VALUE) {
+            printf("Backward");
             gpio_put(RIGHT_WHEEL_FORWARD, 0);
             gpio_put(RIGHT_WHEEL_BACKWARD, 1);
             gpio_put(LEFT_WHEEL_FORWARD, 0);
@@ -131,6 +132,7 @@ void move_wheels(__unused void *params) {
         }  
         // Move car forward if both sensors detect white space.
         else if (left_IR_data < COLOUR_CUTOFF_VALUE && right_IR_data < COLOUR_CUTOFF_VALUE) {
+            printf("Forward");
             gpio_put(RIGHT_WHEEL_FORWARD, 1);
             gpio_put(RIGHT_WHEEL_BACKWARD, 0);
             gpio_put(LEFT_WHEEL_FORWARD, 1);
@@ -247,7 +249,7 @@ void read_ir_sensor(__unused void *params) {
             0);
 
         // Troubleshooting purposes.
-        // printf("Left ADC Result: %d\n", l_result);
+        // printf("Left ADC Result: %d\t Right ADC Result: %d\n", l_result, r_result);
         // printf("Right ADC Result: %d\n", r_result);
     }
 }
