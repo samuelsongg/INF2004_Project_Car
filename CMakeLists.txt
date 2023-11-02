@@ -45,8 +45,12 @@ if (EXISTS ${PICO_LWIP_CONTRIB_PATH}/apps/ping/ping.c)
         pico_lwip_iperf
         FreeRTOS-Kernel-Heap4 # FreeRTOS kernel and dynamic heap
         hardware_pwm
+        hardware_motor
+        hardware_ultrasonic
+        hardware_encoder
+        hardware_irline
         )
-    
+
     pico_enable_stdio_usb(picow_freertos_ping_sys 1)
     pico_add_extra_outputs(picow_freertos_ping_sys)
 endif()
