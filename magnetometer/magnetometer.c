@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <math.h>
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
 
@@ -51,6 +52,7 @@ void read_accelerometer_data() {
     int16_t z_acc = (int16_t)((accel_data[5] << 8) | accel_data[4]) >> 4;
 
     //printf("X: %.4f, Y: %.4f, Z: %.4f\n", x_acc, y_acc, z_acc);
+    printf("heading angle:", )
 }
 
 // Function to initialize the magnetometer
@@ -131,6 +133,21 @@ void read_magnetometer_data() {
     printf("X: %.4f Gauss, Y: %.4f Gauss, Z: %.4f Gauss\n", x / 1370.0, y / 1370.0, z / 1370.0);
 }
 
+// Function to calculate and display the heading angle
+void calculate_and_display_heading(int16_t x, int16 y) {
+    // Calculate the heading angle (in degrees) using the arctan2 function
+    double heading_rad = atan2(y, x);
+    double heading_deg = heading_rad * (180.0 / M_PI);
+
+    // Ensure the angle is between 0 and 360 degrees
+    if (heading_deg < 0) {
+        heading_deg += 360.0;
+    }
+
+    printf("Heading: %.2f degrees\n", heading_deg);
+
+}
+
 int main() {
     stdio_init_all();
     init_i2c();
@@ -140,6 +157,7 @@ int main() {
     while (1) {
         printf("--------------------\n");
         read_magnetometer_data();
+        calculate_and_display_heading(x, y);
         read_accelerometer_data();
         sleep_ms(500);  // Sleep for 500 milliseconds
     }
