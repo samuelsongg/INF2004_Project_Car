@@ -4,22 +4,34 @@
  * SPDX-License-Identifier: BS  D-3-Clause
  */
 
+// Standard libraries.
 #include <stdio.h>
+#include <stdlib.h> // for barcode codes
+#include <string.h> // for barcode codes
+#include <stddef.h> // for barcode codes
 
+// Pico libraries.
 #include "pico/cyw43_arch.h"
 #include "pico/stdlib.h"
-
 #include "lwip/ip4_addr.h"
 
+// FreeRTOS libraries.
 #include "FreeRTOS.h"
 #include "task.h"
 #include "ping.h"
 #include "message_buffer.h"
 
+// Hardware libraries.
 #include "hardware/gpio.h"
 #include "hardware/adc.h"
 #include "hardware/pwm.h"
 #include "hardware/timer.h"
+
+// Sensor libraries.
+#include "hardware/motor.h"
+#include "hardware/ultrasonic.h"
+#include "hardware/encoder.h"
+#include "hardware/irline.h"
 
 #define mbaTASK_MESSAGE_BUFFER_SIZE       ( 60 )
 
@@ -36,53 +48,10 @@ static MessageBufferHandle_t sendDataLeftIRSensorCMB;
 static MessageBufferHandle_t sendDataRightIRSensorCMB;
 static MessageBufferHandle_t sendDataUltrasonicSensorCMB;
 
-const uint RIGHT_WHEEL_FORWARD = 18;
-const uint RIGHT_WHEEL_BACKWARD = 19;
-const uint LEFT_WHEEL_FORWARD = 20;
-const uint LEFT_WHEEL_BACKWARD = 21;
-
-const uint LEFT_IR_SENSOR_A0 = 26;
-const uint LEFT_IR_SENSOR_VCC = 2;
-const uint LEFT_IR_SENSOR_GND = 3;
-const uint RIGHT_IR_SENSOR_A0 = 27;
-const uint RIGHT_IR_SENSOR_VCC = 4;
-const uint RIGHT_IR_SENSOR_GND = 5;
-const uint COLOUR_CUTOFF_VALUE = 600;
-
-const uint ULTRASONIC_ECHO = 10;
-const uint ULTRASONIC_TRIG = 11;
-const uint ULTRASONIC_VCC = 12;
-
-volatile char direction = 'w';
-
-void move_wheels(__unused void *params) {7
-    gpio_set_function(14, GPIO_FUNC_PWM);
-    gpio_set_function(15, GPIO_FUNC_PWM);
-
-    uint slice_num14 = pwm_gpio_to_slice_num(14);
-    uint slice_num15 = pwm_gpio_to_slice_num(15);
-
-    pwm_set_clkdiv(slice_num14, 100);
-    pwm_set_clkdiv(slice_num15, 100);
-    
-    pwm_set_wrap(slice_num14, 12500);
-    pwm_set_wrap(slice_num15, 12500);
-    
-    pwm_set_chan_level(slice_num14, PWM_CHAN_A, 12500 / 2);
-    pwm_set_chan_level(slice_num15, PWM_CHAN_B, 12500 / 2);
-    
-    pwm_set_enabled(slice_num14, true);
-    pwm_set_enabled(slice_num15, true);
-
-    gpio_init(RIGHT_WHEEL_FORWARD);
-    gpio_init(RIGHT_WHEEL_BACKWARD);
-    gpio_init(LEFT_WHEEL_FORWARD);
-    gpio_init(LEFT_WHEEL_BACKWARD);
-
-    gpio_set_dir(RIGHT_WHEEL_FORWARD, GPIO_OUT);
-    gpio_set_dir(RIGHT_WHEEL_BACKWARD, GPIO_OUT);
-    gpio_set_dir(LEFT_WHEEL_FORWARD, GPIO_OUT);
-    gpio_set_dir(LEFT_WHEEL_BACKWARD, GPIO_OUT);
+void move_wheels(__unused void *params) {
+    initMotor(NULL);
+    setLeftSpeed(0.8);
+    setRightSpeed(0.8);
 
     int left_IR_data = 0;
     int right_IR_data = 0;
@@ -109,202 +78,69 @@ void move_wheels(__unused void *params) {7
             sizeof(ultrasonic_data),
             portMAX_DELAY);
 
-        // Turn right if car detects obstacle in front.
-        // if (ultrasonic_data <= 20) {
-        //     gpio_put(RIGHT_WHEEL_FORWARD, 0);
-        //     gpio_put(RIGHT_WHEEL_BACKWARD, 1);
-        //     gpio_put(LEFT_WHEEL_FORWARD, 1);
-        //     gpio_put(LEFT_WHEEL_BACKWARD, 0);
-        // }
-        // Move car backwards and turn right if both sensors detect black line.
-        // Insert algo here...
-        if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data > COLOUR_CUTOFF_VALUE) {
-            printf("Backward");
-            gpio_put(RIGHT_WHEEL_FORWARD, 0);
-            gpio_put(RIGHT_WHEEL_BACKWARD, 1);
-            gpio_put(LEFT_WHEEL_FORWARD, 0);
-            gpio_put(LEFT_WHEEL_BACKWARD, 1);
-            vTaskDelay(200); // Adjust delay accordingly.
-            gpio_put(RIGHT_WHEEL_FORWARD, 0);
-            gpio_put(RIGHT_WHEEL_BACKWARD, 1);
-            gpio_put(LEFT_WHEEL_FORWARD, 1);
-            gpio_put(LEFT_WHEEL_BACKWARD, 0);
-        }  
-        // Move car forward if both sensors detect white space.
-        else if (left_IR_data < COLOUR_CUTOFF_VALUE && right_IR_data < COLOUR_CUTOFF_VALUE) {
-            printf("Forward");
-            gpio_put(RIGHT_WHEEL_FORWARD, 1);
-            gpio_put(RIGHT_WHEEL_BACKWARD, 0);
-            gpio_put(LEFT_WHEEL_FORWARD, 1);
-            gpio_put(LEFT_WHEEL_BACKWARD, 0);  
-        }
-        // Turn car right is left sensor detects black line.
-        else if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data < COLOUR_CUTOFF_VALUE) {
-            gpio_put(RIGHT_WHEEL_FORWARD, 0);
-            gpio_put(RIGHT_WHEEL_BACKWARD, 1);
-            gpio_put(LEFT_WHEEL_FORWARD, 1);
-            gpio_put(LEFT_WHEEL_BACKWARD, 0);
-        }
-        // Turn car left if right sensor detects black line.
-        else if (right_IR_data > COLOUR_CUTOFF_VALUE && left_IR_data < COLOUR_CUTOFF_VALUE) {
-            gpio_put(RIGHT_WHEEL_FORWARD, 1);
-            gpio_put(RIGHT_WHEEL_BACKWARD, 0);
-            gpio_put(LEFT_WHEEL_FORWARD, 0);
-            gpio_put(LEFT_WHEEL_BACKWARD, 1);
-        } 
+        // Insert Car Movement Algo...
+        moveForward(NULL);
     }
 }
 
-// Ignore for now.
-// Used in conjunction with wifi to start car.
-void get_direction(__unused void *params) {
-    while (true) {
-        char input_direction = getchar();
-
-        if (input_direction == 'w') {
-            direction = 'w';
-            printf("Direction: %c\n", direction);
-        }
-        else if (input_direction == 's') {
-            direction = 's';
-            printf("Direction: %c\n", direction);
-        }
-    }
+void read_wheel_encoder(__unused void *params) {
+    setupWheelEncoders(NULL);
 }
 
 void read_ir_sensor(__unused void *params) {
-    adc_init();
-    adc_set_temp_sensor_enabled(true);
-
-    gpio_init(LEFT_IR_SENSOR_VCC);
-    gpio_init(LEFT_IR_SENSOR_GND);
-    gpio_init(RIGHT_IR_SENSOR_VCC);
-    gpio_init(RIGHT_IR_SENSOR_GND);
-
-    gpio_set_dir(LEFT_IR_SENSOR_VCC, GPIO_OUT);
-    gpio_set_dir(LEFT_IR_SENSOR_GND, GPIO_OUT);
-    gpio_set_dir(RIGHT_IR_SENSOR_VCC, GPIO_OUT);
-    gpio_set_dir(RIGHT_IR_SENSOR_GND, GPIO_OUT);
-
-    gpio_put(LEFT_IR_SENSOR_VCC, 1); // Set to high for LEFT_IR_Sensor's VCC
-    gpio_put(LEFT_IR_SENSOR_GND, 0); // Set to low for LEFT_IR_Sensor's GND
-    gpio_put(RIGHT_IR_SENSOR_VCC, 1); // Set to high for RIGHT_IR_Sensor's VCC
-    gpio_put(RIGHT_IR_SENSOR_GND, 0); // Set to low for RIGHT_IR_Sensor's GND
-
-    gpio_set_dir(LEFT_IR_SENSOR_A0, GPIO_IN); // IR Sensor
-    gpio_set_function(LEFT_IR_SENSOR_A0, GPIO_FUNC_SIO);
-    gpio_disable_pulls(LEFT_IR_SENSOR_A0);
-    gpio_set_input_enabled(LEFT_IR_SENSOR_A0, false);
-    
-    gpio_set_dir(RIGHT_IR_SENSOR_A0, GPIO_IN); // IR Sensor
-    gpio_set_function(RIGHT_IR_SENSOR_A0, GPIO_FUNC_SIO);
-    gpio_disable_pulls(RIGHT_IR_SENSOR_A0);
-    gpio_set_input_enabled(RIGHT_IR_SENSOR_A0, false);
-
-    int l_sum = 0;
-    static int l_data[10] = {0};
-    static int l_count = 0;
-    static int l_index = 0;
-
-    int r_sum = 0;
-    static int r_data[10] = {0};
-    static int r_count = 0;
-    static int r_index = 0;
+    ir_setup(NULL);
+    // initHashMap(NULL); // Insert key-value pairs for barcode scanner.
 
     while (true) {
         vTaskDelay(10);
 
-        adc_select_input(0);
-        uint32_t l_result = adc_read();
-        adc_select_input(1);
-        uint32_t r_result = adc_read();
-        
-        // Calculate moving average of 10 data points.
-        l_sum -= l_data[l_index];
-        l_data[l_index] = l_result;
-        l_sum += l_data[l_index];
-        l_index = (l_index + 1) % 10;
-        
-        r_sum -= r_data[r_index];
-        r_data[r_index] = r_result;
-        r_sum += r_data[r_index];
-        r_index = (r_index + 1) % 10;
-        
-        if (l_count < 10) l_count++;
-        if (r_count < 10) r_count++;
-
-        l_result = l_sum / l_count;
-        r_result = r_sum / r_count;
+        read_ir(NULL);
 
         xMessageBufferSend(
             sendDataLeftIRSensorCMB,
-            (void *) &l_result,
-            sizeof(l_result),
+            (void *) &l_ir_result,
+            sizeof(l_ir_result),
             0);
 
         xMessageBufferSend(
             sendDataRightIRSensorCMB,
-            (void *) &r_result,
-            sizeof(r_result),
+            (void *) &r_ir_result,
+            sizeof(r_ir_result),
             0);
 
         // Troubleshooting purposes.
-        // printf("Left ADC Result: %d\t Right ADC Result: %d\n", l_result, r_result);
-        // printf("Right ADC Result: %d\n", r_result);
+        //printf("Left ADC Result: %d\t Right ADC Result: %d\n", l_ir_result, r_ir_result);
+        
+        // For lab demo.
+        // if (ir_pulse_width > 10) {
+        //     printf("Left ADC Result: %d\t Right ADC Result: %d\t Pulse Width: %lld\n", l_ir_result, r_ir_result, ir_pulse_width);
+        // }
     }
 }
 
 void read_ultrasonic_sensor(__unused void *params) {
-    uint64_t timeout = 26100;
-
-    gpio_init(ULTRASONIC_ECHO);
-    gpio_init(ULTRASONIC_TRIG);
-    gpio_init(ULTRASONIC_VCC);
-
-    gpio_set_dir(ULTRASONIC_ECHO, GPIO_IN);
-    gpio_set_dir(ULTRASONIC_TRIG, GPIO_OUT);
-    gpio_set_dir(ULTRASONIC_VCC, GPIO_OUT);
-
-    gpio_put(ULTRASONIC_VCC, 1);
+    initUltrasonic(NULL);
+    // When ultrasonic sensor detects an object, calls gpio_callback.
+    // gpio_callback calls getDistanceUltrasonic to get the object's distance.
+    gpio_set_irq_enabled_with_callback(ULTRASONIC_ECHO, GPIO_IRQ_EDGE_RISE, true, &gpio_callback_ultrasonic);
 
     while (true) {
         vTaskDelay(10);
-        gpio_put(ULTRASONIC_TRIG, 1);
-        vTaskDelay(1);
-        gpio_put(ULTRASONIC_TRIG, 0);
-
-        uint64_t width = 0;
-        int successful_pulse = 0;
-
-        while (gpio_get(ULTRASONIC_ECHO) == 0) {
-            tight_loop_contents();
-        }
-
-        absolute_time_t start_time = get_absolute_time();
-
-        while (gpio_get(ULTRASONIC_ECHO) == 1) {
-            width++;
-            vTaskDelay(1);
-            if (width > timeout) {
-                successful_pulse = 0;
-            }
-            else {
-                successful_pulse = 1;
-            }
-        }
-
-        if (successful_pulse == 1) {
-            absolute_time_t end_time = get_absolute_time();
-            uint64_t final_result = absolute_time_diff_us(start_time, end_time) / 29 / 2;
+        // Function to pulse ultrasonic sensor.
+        pulseUltrasonic(NULL);
             
+        // -1 means no successful pulse.
+        if (final_result != -1) {
             xMessageBufferSend(
                 sendDataUltrasonicSensorCMB,
                 (void *) &final_result,
                 sizeof(final_result),
                 0);
-            
+
             // Troubleshooting purposes.
-            // printf("Pulse Length: %lld\n", final_result);
+            // printf("Ultrasonic Pulse Length: %lldcm\n", final_result);
+            
+            final_result = -1; // Reset to allow for next pulse.
         }
     }
 }
@@ -316,6 +152,8 @@ void vLaunch(void) {
     xTaskCreate(read_ir_sensor, "ReadIrSensorThread", configMINIMAL_STACK_SIZE, NULL, 8, &readIrSensorTask);
     TaskHandle_t readUltrasonicSensorTask;
     xTaskCreate(read_ultrasonic_sensor, "ReadUltrasonicSensorThread", configMINIMAL_STACK_SIZE, NULL, 6, &readUltrasonicSensorTask);
+    TaskHandle_t readWheelEncoderTask;
+    xTaskCreate(read_wheel_encoder, "ReadWheelEncoderThread", configMINIMAL_STACK_SIZE, NULL, 9, &readWheelEncoderTask);
 
     sendDataLeftIRSensorCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
     sendDataRightIRSensorCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
