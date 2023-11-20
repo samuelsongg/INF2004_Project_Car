@@ -8,7 +8,7 @@
 #define RIGHT_IR_SENSOR_GND 5
 
 // Constants for color differentiation and pulse width timeout
-#define COLOUR_CUTOFF_VALUE 10000 // Color difference between black and white. Use IR sensor to measure.
+#define COLOUR_CUTOFF_VALUE 700 // Color difference between black and white. Use IR sensor to measure.
 #define PULSE_WIDTH_TIMEOUT 1000
 
 // Declare global variables for IR sensor results and pulse width
