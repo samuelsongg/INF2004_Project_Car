@@ -2,6 +2,7 @@
 #include <math.h>
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
+//
 
 // Constants for I2C and sensor addresses
 #define MAGNETOMETER_ADDRESS 0x1E  // I2C address for GY-511 magnetometer
