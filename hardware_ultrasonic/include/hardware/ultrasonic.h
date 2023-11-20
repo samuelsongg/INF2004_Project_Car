@@ -10,7 +10,7 @@
 #define ULTRASONIC_TIMEOUT 26100
 
 // Global variable declaration for storing the final ultrasonic distance result
-extern uint64_t final_result;
+extern uint final_result;
 
 // Function declarations for ultrasonic sensor operations
 void initUltrasonic(void *params);
