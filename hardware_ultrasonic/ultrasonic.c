@@ -10,7 +10,7 @@ uint64_t width;
 int successful_pulse;
 absolute_time_t start_time;
 absolute_time_t end_time;
-uint64_t final_result = -1;  // Initialize final result with an error value
+uint final_result = -1;  // Initialize final result with an error value
 
 // Function to initialize ultrasonic sensor GPIO pins
 void initUltrasonic(void *params) {
@@ -33,9 +33,9 @@ uint64_t getDistanceUltrasonic(void *params) {
     width = 0;
     successful_pulse = 0;
 
-    while (gpio_get(ULTRASONIC_ECHO) == 0) {
-        tight_loop_contents();
-    }
+    // while (gpio_get(ULTRASONIC_ECHO) == 0) {
+    //     tight_loop_contents();
+    // }
 
     start_time = get_absolute_time();
 
