@@ -3,13 +3,11 @@
 #include "hardware/gpio.h"
 #include "hardware/adc.h"
 #include "hardware/irline.h"
-#include <string.h>
 
 // Global variables for left and right IR sensor results and pulse width
 volatile uint32_t l_ir_result;
 volatile uint32_t r_ir_result;
 volatile uint64_t ir_pulse_width;
-volatile char *thickness;
 
 // Setup function for IR sensors
 void ir_setup(void *params) {
@@ -52,18 +50,21 @@ void read_ir(void *params) {
     adc_select_input(1);
     r_ir_result = adc_read();
 
-    // Measure time to detect IR signals exceeding the color cutoff value
-    absolute_time_t start_time = get_absolute_time();
-    while (l_ir_result > COLOUR_CUTOFF_VALUE && r_ir_result > COLOUR_CUTOFF_VALUE) {
-        adc_select_input(0);
-        l_ir_result = adc_read();
-        adc_select_input(1);
-        r_ir_result = adc_read();
-    }
+    // bool start = false;
+
+    // // Measure time to detect IR signals exceeding the color cutoff value
     
-    // Measure pulse width when IR signal ends
-    absolute_time_t end_time = get_absolute_time();
-    ir_pulse_width = absolute_time_diff_us(start_time, end_time);
+    // if (l_ir_result > COLOUR_CUTOFF_VALUE && r_ir_result > COLOUR_CUTOFF_VALUE) {
+    //     absolute_time_t start_time = get_absolute_time();
+    //     adc_select_input(0);
+    //     l_ir_result = adc_read();
+    //     adc_select_input(1);
+    //     r_ir_result = adc_read();
+    // }
+    
+    // // Measure pulse width when IR signal ends
+    // absolute_time_t end_time = get_absolute_time();
+    // ir_pulse_width = absolute_time_diff_us(start_time, end_time); // Todo: convert to cm.
 }
 
 /* End of file */
