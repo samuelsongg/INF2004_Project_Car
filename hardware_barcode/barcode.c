@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+// Define the hash map as an array of pointers to KeyValuePair.
 struct KeyValuePair* myHashMap[TABLE_SIZE] = {NULL};
 
 // Hash function to determine array index.
@@ -38,7 +39,8 @@ void insertKeyValuePair(const char* key, const char* value) {
 }
 
 // Function to initialise the hash map for barcode.
-void initHashMap(void *params) {
+void init_hashmap(void *params) {
+
     // Insert key-value pairs for barcode scanner.
     insertKeyValuePair("1010001110111010", "0");
     insertKeyValuePair("1110100010101110", "1");
@@ -99,5 +101,4 @@ const char* getValue(const char* key) {
     }
     return NULL;  // Key not found
 }
-
 /*** End of file ***/
