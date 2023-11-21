@@ -26,6 +26,7 @@
 #include "hardware/ultrasonic.h"
 #include "hardware/encoder.h"
 #include "hardware/irline.h"
+#include "hardware/magnetometer.h"
 
 #define mbaTASK_MESSAGE_BUFFER_SIZE       ( 60 )
 
@@ -51,20 +52,25 @@ void move_wheels(__unused void *params) {
 
         // printf("LeftIR: %d, RightIR: %d\n", left_IR_data, right_IR_data);
         // printf("Ultrasonic: %d\n", final_result);
-        printf("LeftEncoder: %f, RightEncoder: %f, ultrasonic: %d\n", leftEncoderSpeed, rightEncoderSpeed, final_result);
+        // printf("LeftEncoder: %f, RightEncoder: %f, ultrasonic: %d\n", leftEncoderSpeed, rightEncoderSpeed, final_result);
         // if (final_result < 15) {
         //     stop(NULL);
         // } else 
-        if (left_IR_data < COLOUR_CUTOFF_VALUE && right_IR_data < COLOUR_CUTOFF_VALUE){
-            moveForward(NULL);
 
-            if (left_encoder_speed < right_encoder_speed + 0.6) {
-                increaseLeftSpeed(NULL);
-            }
-            if (left_encoder_speed > right_encoder_speed + 0.6) {
-                decreaseLeftSpeed(NULL);
-            }
-        }
+        // moveForward(NULL);
+
+        // if (left_IR_data < COLOUR_CUTOFF_VALUE && right_IR_data < COLOUR_CUTOFF_VALUE){
+        //     moveForward(NULL);
+
+            // if (left_encoder_speed < right_encoder_speed + 0.6) {
+            //     increaseLeftSpeed(NULL);
+            // }
+            // if (left_encoder_speed > right_encoder_speed + 0.6) {
+            //     decreaseLeftSpeed(NULL);
+            // }
+        // }
+
+
         // } else if (left_IR_data < COLOUR_CUTOFF_VALUE && right_IR_data > COLOUR_CUTOFF_VALUE){
         //     turnHardLeft(NULL);
         // } else if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data < COLOUR_CUTOFF_VALUE){
@@ -87,25 +93,6 @@ void move_wheels(__unused void *params) {
             (void *) &right_IR_data,
             sizeof(right_IR_data),
             portMAX_DELAY);
-
-        // xMessageBufferReceive(
-        //     sendDataUltrasonicSensorCMB,
-        //     (void *) &ultrasonic_data,
-        //     sizeof(ultrasonic_data),
-        //     portMAX_DELAY);
-
-        // xMessageBufferReceive(
-        //     sendDataLeftEncoderCMB,
-        //     (void *) &left_encoder_speed,
-        //     sizeof(left_encoder_speed),
-        //     portMAX_DELAY);
-
-        // xMessageBufferReceive(
-        //     sendDataRightEncoderCMB,
-        //     (void *) &right_encoder_speed,
-        //     sizeof(right_encoder_speed),
-        //     portMAX_DELAY);
-
     }
 }
 
@@ -141,16 +128,22 @@ void read_ir_sensor(__unused void *params) {
             sizeof(r_ir_result),
             0);
 
+        ir_main_loop(NULL);
+
         // Troubleshooting purposes.
         // printf("Left ADC Result: %d\t Right ADC Result: %d\n", l_ir_result, r_ir_result);
         
         // For lab demo.
         // if (ir_pulse_width > 10) {
+        //     printf("Pulse Width: %lld\n", ir_pulse_width);
+        // }
+
+        // if (ir_pulse_width > 10) {
         //     if (ir_pulse_width > 1000000) {
-        //         printf("Left ADC Result: %d\t Right ADC Result: %d\t Line Thickness: Thick\n", l_ir_result, r_ir_result);
+        //         printf("Left ADC Result: %d\t Right ADC Result: %d\t Line Thickness: Thick: %lld\n", l_ir_result, r_ir_result, ir_pulse_width);
         //     }
         //     else {
-        //         printf("Left ADC Result: %d\t Right ADC Result: %d\t Line Thickness: Thin\n", l_ir_result, r_ir_result);
+        //         printf("Left ADC Result: %d\t Right ADC Result: %d\t Line Thickness: Thin: %lld\n", l_ir_result, r_ir_result, ir_pulse_width);
         //     }
         // }
     }
@@ -167,6 +160,10 @@ void gpio_callback(uint gpio, uint32_t events) {
 
     if (gpio == ULTRASONIC_ECHO) {
         getDistanceUltrasonic(NULL);
+    }
+
+    if (gpio == RIGHT_IR_SENSOR_A0) {
+        white_surface_detected_handler(gpio, events);
     }
 }
 
@@ -191,19 +188,20 @@ void read_ultrasonic_sensor(__unused void *params) {
     }
 }
 
+void read_magnetometer_task(__unused void *params) {
+    setup_magnetometer(NULL);
+
+    while (true) {
+        vTaskDelay(10);
+
+        read_magnetometer(NULL);
+    }
+}
+
 void interrupt_task(__unused void *params) {
-    // gpio_add_raw_irq_handler(ULTRASONIC_ECHO, gpio_callback);
-    // gpio_set_irq_enabled(ULTRASONIC_ECHO, GPIO_IRQ_EDGE_RISE, true);
-    // gpio_add_raw_irq_handler(LEFT_ENCODER_PIN, gpio_callback);
-    // gpio_set_irq_enabled(LEFT_ENCODER_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
-    // gpio_add_raw_irq_handler(RIGHT_ENCODER_PIN, gpio_callback);
-    // gpio_set_irq_enabled(RIGHT_ENCODER_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
-
-
     gpio_set_irq_enabled_with_callback(LEFT_ENCODER_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_callback);
     gpio_set_irq_enabled_with_callback(RIGHT_ENCODER_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_callback);
-    // When ultrasonic sensor detects an object, calls gpio_callback.
-    // gpio_callback calls getDistanceUltrasonic to get the object's distance.
+    gpio_set_irq_enabled_with_callback(RIGHT_IR_SENSOR_A0, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE, true, &gpio_callback);
     gpio_set_irq_enabled_with_callback(ULTRASONIC_ECHO, GPIO_IRQ_EDGE_RISE, true, &gpio_callback);
 
     while (true) {
@@ -213,15 +211,15 @@ void interrupt_task(__unused void *params) {
 
 void vLaunch(void) {
     TaskHandle_t moveWheelsTask;
-    xTaskCreate(move_wheels, "MoveWheelsThread", configMINIMAL_STACK_SIZE, NULL, 9, &moveWheelsTask);
+    xTaskCreate(move_wheels, "MoveWheelsThread", configMINIMAL_STACK_SIZE, NULL, 5, &moveWheelsTask);
     TaskHandle_t readIrSensorTask;
-    xTaskCreate(read_ir_sensor, "ReadIrSensorThread", configMINIMAL_STACK_SIZE, NULL, 8, &readIrSensorTask);
+    xTaskCreate(read_ir_sensor, "ReadIrSensorThread", configMINIMAL_STACK_SIZE, NULL, 5, &readIrSensorTask);
     TaskHandle_t readUltrasonicSensorTask;
-    xTaskCreate(read_ultrasonic_sensor, "ReadUltrasonicSensorThread", configMINIMAL_STACK_SIZE, NULL, 6, &readUltrasonicSensorTask);
-    // TaskHandle_t readWheelEncoderTask;
-    // xTaskCreate(read_wheel_encoder, "ReadWheelEncoderThread", configMINIMAL_STACK_SIZE, NULL, 7, &readWheelEncoderTask);
+    xTaskCreate(read_ultrasonic_sensor, "ReadUltrasonicSensorThread", configMINIMAL_STACK_SIZE, NULL, 5, &readUltrasonicSensorTask);
     TaskHandle_t interruptTask;
     xTaskCreate(interrupt_task, "InterruptThread", configMINIMAL_STACK_SIZE, NULL, 5, &interruptTask);
+    TaskHandle_t magnetometerTask;
+    xTaskCreate(read_magnetometer_task, "MagnetometerThread", configMINIMAL_STACK_SIZE, NULL, 5, &magnetometerTask);
 
     sendDataLeftIRSensorCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
     sendDataRightIRSensorCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);

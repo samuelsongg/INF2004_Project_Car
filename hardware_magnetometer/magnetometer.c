@@ -11,7 +11,7 @@
 #define ACCELEROMETER_ADDRESS 0x19 // I2C address for the accelerometer
 
 // Function to initialize I2C communication
-void init_i2c() {
+void init_i2c(void *params) {
     i2c_init(i2c0, 400000);          // Initialize I2C with a 400 kHz baud rate
     gpio_set_function(0, GPIO_FUNC_I2C);  // Set GPIO0 as SDA
     gpio_set_function(1, GPIO_FUNC_I2C);  // Set GPIO1 as SCL
@@ -20,7 +20,7 @@ void init_i2c() {
 }
 
 // Function to initialize the accelerometer
-void init_accelerometer() {
+void init_accelerometer(void *params) {
     // Configuration register addresses and values for the accelerometer setup
     const uint8_t CTRL_REG1_A = 0x20;
     const uint8_t ENABLE_ACCEL = 0x57;  // 100 Hz data rate, all axes enabled, normal mode
@@ -38,7 +38,7 @@ void init_accelerometer() {
 }
 
 // Function to read data from the accelerometer
-void read_accelerometer_data() {
+void read_accelerometer_data(void *params) {
     // Address for the accelerometer data registers with auto-increment bit set
     const uint8_t OUT_X_L_A = 0x28 | 0x80;
     uint8_t accel_data[6] = {0};  // Buffer to hold the raw accelerometer data
@@ -57,7 +57,7 @@ void read_accelerometer_data() {
 }
 
 // Function to initialize the magnetometer
-void init_magnetometer() {
+void init_magnetometer(void *params) {
     // Set the magnetometer to continuous measurement mode with default configuration
     // Addresses and values for the magnetometer control registers
     const uint8_t MR_REG_M = 0x02;
@@ -83,7 +83,7 @@ void init_magnetometer() {
 }
 
 // Function to read data from the magnetometer
-void read_magnetometer_data() {
+void read_magnetometer_data(void *params) {
     uint8_t reg[1] = {0};
     uint8_t data[1] = {0};
 
@@ -131,13 +131,13 @@ void read_magnetometer_data() {
     int16_t z = (data1_4 << 8) | data1_5;
     // (Similar conversions for other axes...)
 
-    printf("X: %d Gauss, Y: %d Gauss, Z: %d Gauss\n", x, y, z);
+    // printf("X: %d Gauss, Y: %d Gauss, Z: %d Gauss\n", x, y, z);
     // static int16_t minX = 0, maxX = 0, minY = 0, maxY = 0;
     // if (x < minX) minX = x;
     // if (x > maxX) maxX = x;
     // if (y < minY) minY = y;
     // if (y > maxY) maxY = y;
-    int16_t minX =  -371, maxX = 421, minY = -680, maxY = 118;
+    int16_t minX =  -361, maxX = 329, minY = -769, maxY = 0;
 
     int16_t xOffset = (minX + maxX) / 2;
     int16_t yOffset = (minY + maxY) / 2;
@@ -169,7 +169,7 @@ void read_magnetometer_data() {
         heading_deg += 360.0;
     }
 
-    printf("Heading: %.2f degrees\n", heading_deg);
+    // printf("Heading: %.2f degrees\n", heading_deg);
 
 }
 
@@ -178,19 +178,15 @@ void read_magnetometer_data() {
 
 // }
 
-int main() {
+void setup_magnetometer(void *params) {
     stdio_init_all();
-    init_i2c();
-    init_magnetometer();
-    init_accelerometer();
+    init_i2c(NULL);
+    init_magnetometer(NULL);
+    init_accelerometer(NULL);
+}
 
-    while (1) {
-        printf("--------------------\n");
-        read_magnetometer_data();
-        // calculate_and_display_heading(x, y);
-        read_accelerometer_data();
-        sleep_ms(500);  // Sleep for 500 milliseconds
-    }
-
-    return 0;
+void read_magnetometer(void *params) {
+    // printf("--------------------\n");
+    // calculate_and_display_heading(x, y);
+    read_magnetometer_data(NULL);
 }
