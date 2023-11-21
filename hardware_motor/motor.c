@@ -6,6 +6,8 @@
 // Global variables for PWM slice numbers
 uint slice_num_left;
 uint slice_num_right;
+volatile int left_level = 0;
+volatile int right_level = 0;
 
 // Function to initialize motor
 void initMotor(void *params) {
@@ -35,7 +37,18 @@ void setLeftSpeed(float speed_multiplier) {
     pwm_set_clkdiv(slice_num_left, CLK_DIV);
     pwm_set_wrap(slice_num_left, PWM_WRAP);
     pwm_set_chan_level(slice_num_left, PWM_CHAN_A, PWM_WRAP * speed_multiplier);
+    left_level = PWM_WRAP * speed_multiplier;
     pwm_set_enabled(slice_num_left, true);
+}
+
+void increaseLeftSpeed(void *params) {
+    left_level += 7;
+    pwm_set_chan_level(slice_num_left, PWM_CHAN_A, left_level);
+}
+
+void decreaseLeftSpeed(void *params) {
+    left_level -= 7;
+    pwm_set_chan_level(slice_num_left, PWM_CHAN_A, left_level);
 }
 
 // Function to set speed for the right motor
@@ -43,7 +56,18 @@ void setRightSpeed(float speed_multiplier) {
     pwm_set_clkdiv(slice_num_right, CLK_DIV);
     pwm_set_wrap(slice_num_right, 10000);
     pwm_set_chan_level(slice_num_right, PWM_CHAN_B, PWM_WRAP * speed_multiplier);
+    right_level = PWM_WRAP * speed_multiplier;
     pwm_set_enabled(slice_num_right, true);
+}
+
+void increaseRightSpeed(void *params) {
+    right_level++;
+    pwm_set_chan_level(slice_num_right, PWM_CHAN_B, right_level);
+}
+
+void decreaseRightSpeed(void *params) {
+    right_level--;
+    pwm_set_chan_level(slice_num_right, PWM_CHAN_B, right_level);
 }
 
 // Function to stop the motors
