@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+    <head> 
+        <title>INF2004 Our Car</title> 
+    </head>
+    <body> <h1 style="text-align: center;">Team 61 </h1>
+        <br>
+        <h2 style="text-align: center;">Output from Car </h2>
+        <div style="text-align: center;">
+            <p>Voltage: <!--#volt--></p>
+            <p>Temp: <!--#temp--> C</p>
+            <p>LED is: <!--#led--></p>
+        </div>
+        
+        <br>
+        <h2 style="text-align: center;">Input from Laptop</h2>
+
+        <div style="text-align: center">
+            <div style="align-items: center;">
+            <a href="/led.cgi?led=1"><button>Start</button></a>
+            <a href="/led.cgi?led=0"><button>Stop</button></a>
+            </div>
+            <br>
+            
+            <form action="/text.cgi">
+                <input type="text" id="sname" name="sname"><br><br>
+                <input type="submit" value="Submit">
+            </form>
+        </div>
+       
+        
+        <br>
+        <br>
+        <a href="/index.shtml">Refresh</a>
+   </body>
+</html>
