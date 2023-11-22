@@ -1,7 +1,7 @@
 
 # Fill this in sir
-set(WIFI_SSID "samuelsongg")
-set(WIFI_PASSWORD "9810423x")
+set(WIFI_SSID "Galaxy_N")
+set(WIFI_PASSWORD "12345678")
 
 
 if (EXISTS ${PICO_LWIP_CONTRIB_PATH}/apps/ping/ping.c)

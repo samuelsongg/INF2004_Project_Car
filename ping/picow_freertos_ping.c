@@ -36,8 +36,8 @@
 #include "hardware/irline.h"
 #include "hardware/magnetometer.h"
 
-#define WIFI_SSID       "samuelsongg"
-#define WIFI_PASSWORD   "9810423x"
+#define WIFI_SSID       "Galaxy_N"
+#define WIFI_PASSWORD   "12345678"
 
 #define mbaTASK_MESSAGE_BUFFER_SIZE       ( 60 )
 
@@ -244,25 +244,25 @@ void web_server_task(__unused void *params) {
     while (true)
     {
         vTaskDelay(10);
-        printf("Test\n");
+        // printf("Test\n");
     }
 
     cyw43_arch_deinit();
 }
 
 void vLaunch(void) {
+    TaskHandle_t webServerTask;
+    xTaskCreate(web_server_task, "webserverThread", configMINIMAL_STACK_SIZE, NULL, 2, &webServerTask);
     TaskHandle_t moveWheelsTask;
-    xTaskCreate(move_wheels, "MoveWheelsThread", configMINIMAL_STACK_SIZE, NULL, 5, &moveWheelsTask);
+    xTaskCreate(move_wheels, "MoveWheelsThread", configMINIMAL_STACK_SIZE, NULL, 2, &moveWheelsTask);
     TaskHandle_t readIrSensorTask;
-    xTaskCreate(read_ir_sensor, "ReadIrSensorThread", configMINIMAL_STACK_SIZE, NULL, 5, &readIrSensorTask);
+    xTaskCreate(read_ir_sensor, "ReadIrSensorThread", configMINIMAL_STACK_SIZE, NULL, 2, &readIrSensorTask);
     TaskHandle_t readUltrasonicSensorTask;
-    xTaskCreate(read_ultrasonic_sensor, "ReadUltrasonicSensorThread", configMINIMAL_STACK_SIZE, NULL, 5, &readUltrasonicSensorTask);
+    xTaskCreate(read_ultrasonic_sensor, "ReadUltrasonicSensorThread", configMINIMAL_STACK_SIZE, NULL, 2, &readUltrasonicSensorTask);
     TaskHandle_t interruptTask;
-    xTaskCreate(interrupt_task, "InterruptThread", configMINIMAL_STACK_SIZE, NULL, 5, &interruptTask);
+    xTaskCreate(interrupt_task, "InterruptThread", configMINIMAL_STACK_SIZE, NULL, 2, &interruptTask);
     // TaskHandle_t magnetometerTask;
     // xTaskCreate(read_magnetometer_task, "MagnetometerThread", configMINIMAL_STACK_SIZE, NULL, 5, &magnetometerTask);
-    TaskHandle_t webServerTask;
-    xTaskCreate(web_server_task, "webserverThread", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1UL, &webServerTask);
 
     sendDataLeftIRSensorCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
     sendDataRightIRSensorCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
@@ -277,7 +277,7 @@ void vLaunch(void) {
 int main(void)
 {
     stdio_init_all();
-    adc_init();
+    // adc_init();
     vLaunch();
 
     return 0;

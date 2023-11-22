@@ -80,6 +80,8 @@ char* outputBuffer;
 static absolute_time_t blockStart;
 static absolute_time_t blockEnd;
 
+volatile char read_char;
+
 
 
 // Function to read IR sensor values and calculate pulse width
@@ -185,7 +187,7 @@ void ir_setup(void *params) {
     gpio_init(RIGHT_IR_SENSOR_A0);
     gpio_set_dir(RIGHT_IR_SENSOR_A0, GPIO_IN);
     
-    // adc_init();
+    adc_init();
 
     // init the queue
     flushVoltageClassification();
@@ -355,6 +357,7 @@ static void appendVoltageClassification(struct voltageClassification voltageClas
     if(barcode_arr_index == BARCODE_BUF_SIZE){
         char read = compareTwoArray();
         if(read != 0){
+            read_char = read;
             printf("%c\0", read);
 
             

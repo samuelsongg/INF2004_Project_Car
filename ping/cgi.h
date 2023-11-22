@@ -8,10 +8,10 @@ const char * cgi_led_handler(int iIndex, int iNumParams, char *pcParam[], char *
     if (strcmp(pcParam[0] , "led") == 0){
         // Look at the argument to check if LED is to be turned on (x=1) or off (x=0)
         if(strcmp(pcValue[0], "0") == 0){
-            cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 0);
+            // cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 0);
             printf("Stopped car \n");
         } else{
-            cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
+            // cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
             printf("Started car \n");
         }
             

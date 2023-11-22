@@ -32,6 +32,9 @@ extern volatile char *thickness;
 
 extern struct voltageClassification voltageClassification;
 extern uint8_t barcodeSecondChar;
+extern uint8_t barcodeFirstChar;
+extern uint8_t barcodeThirdChar;
+extern volatile char read_char;
 
 // static struct voltageClassification voltageClassifications[BARCODE_BUF_SIZE];
 

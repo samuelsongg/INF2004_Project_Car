@@ -6,10 +6,8 @@
     <body> <h1 style="text-align: center;">Team 61 </h1>
         <br>
         <h2 style="text-align: center;">Output from Car </h2>
-        <div style="text-align: center;">
-            <p>Voltage: <!--#volt--></p>
-            <p>Temp: <!--#temp--> C</p>
-            <p>LED is: <!--#led--></p>
+        <div style="text-align:center">
+            <p>Barcode: <!--#code--></p>
         </div>
         
         <br>
