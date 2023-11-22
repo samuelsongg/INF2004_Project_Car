@@ -62,12 +62,12 @@ void move_wheels(__unused void *params) {
         // if (left_IR_data < COLOUR_CUTOFF_VALUE && right_IR_data < COLOUR_CUTOFF_VALUE){
         //     moveForward(NULL);
 
-            // if (left_encoder_speed < right_encoder_speed + 0.6) {
-            //     increaseLeftSpeed(NULL);
-            // }
-            // if (left_encoder_speed > right_encoder_speed + 0.6) {
-            //     decreaseLeftSpeed(NULL);
-            // }
+        //     if (left_encoder_speed < right_encoder_speed + 0.6) {
+        //         increaseLeftSpeed(NULL);
+        //     }
+        //     if (left_encoder_speed > right_encoder_speed + 0.6) {
+        //         decreaseLeftSpeed(NULL);
+        //     }
         // }
 
 
@@ -128,7 +128,7 @@ void read_ir_sensor(__unused void *params) {
             sizeof(r_ir_result),
             0);
 
-        ir_main_loop(NULL);
+        ir_main_loop();
 
         // Troubleshooting purposes.
         // printf("Left ADC Result: %d\t Right ADC Result: %d\n", l_ir_result, r_ir_result);
@@ -160,10 +160,6 @@ void gpio_callback(uint gpio, uint32_t events) {
 
     if (gpio == ULTRASONIC_ECHO) {
         getDistanceUltrasonic(NULL);
-    }
-
-    if (gpio == RIGHT_IR_SENSOR_A0) {
-        white_surface_detected_handler(gpio, events);
     }
 }
 
@@ -201,7 +197,6 @@ void read_magnetometer_task(__unused void *params) {
 void interrupt_task(__unused void *params) {
     gpio_set_irq_enabled_with_callback(LEFT_ENCODER_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_callback);
     gpio_set_irq_enabled_with_callback(RIGHT_ENCODER_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_callback);
-    gpio_set_irq_enabled_with_callback(RIGHT_IR_SENSOR_A0, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE, true, &gpio_callback);
     gpio_set_irq_enabled_with_callback(ULTRASONIC_ECHO, GPIO_IRQ_EDGE_RISE, true, &gpio_callback);
 
     while (true) {
