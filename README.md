@@ -7,3 +7,4 @@
 - Put `ping` folder into `\Pico-v1.5.1\pico-examples\pico_w\wifi\freertos`.
   - Wifi module is located inside the `ping` folder.
   - Main integration file is `picow_freertos_ping.c` inside `ping` folder.
+  - Replace `WIFI_SSID` and `WIFI_PASSWORD` according to your own mobile hotspot in `picow_freertos_ping.c` and `CMakeList.txt`.
