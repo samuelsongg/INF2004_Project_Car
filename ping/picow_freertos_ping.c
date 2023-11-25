@@ -37,8 +37,8 @@
 #include "hardware/magnetometer.h"
 #include "hardware/barcode.h"
 
-#define WIFI_SSID       "samuelsongg"
-#define WIFI_PASSWORD   "9810423x"
+#define WIFI_SSID       "SSID"
+#define WIFI_PASSWORD   "PASSWORD"
 
 #define mbaTASK_MESSAGE_BUFFER_SIZE       ( 60 )
 
