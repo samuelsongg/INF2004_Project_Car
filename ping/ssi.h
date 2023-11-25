@@ -1,7 +1,7 @@
 #include "lwip/apps/httpd.h"
 #include "pico/cyw43_arch.h"
 #include "hardware/adc.h"
-#include "hardware/irline.h"
+#include "hardware/barcode.h"
 
 // SSI tags - tag length limited to 8 bytes by default
 const char * ssi_tags[] = {"code"};

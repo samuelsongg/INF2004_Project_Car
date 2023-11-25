@@ -4,19 +4,34 @@
 #include <stddef.h>
 #define TABLE_SIZE 100
 
-// Define the structure for key-value pairs.
-struct KeyValuePair {
-    char* key;
-    char* value;
-    struct KeyValuePair* next;
-};
+#define BAUD_RATE 115200
 
-// Define the hash map as an array of pointers to KeyValuePair.
-extern struct KeyValuePair* myHashMap[TABLE_SIZE];
+#define UART_TX_PIN 0
+#define UART_RX_PIN 1
+#define ADC_PIN 26
+#define DIGITAL_PIN 22
+#define BLACK_THRESHOLD 1000
+#define WHITE_THRESHOLD 400
+#define BARCODE_BUF_SIZE 10
+#define BARCODE_ARR_SIZE 9
+#define ADC_DIFFERENCE_THRESHHOLD 50
+#define SAMPLE_SIZE 10000
 
-unsigned int hashFunction(const char* key);
-void insertKeyValuePair(const char* key, const char* value);
-void initHashMap(void *params);
-const char* getValue(const char *key);
+extern struct voltageClassification voltageClassification;
+extern uint8_t barcodeSecondChar;
+extern uint8_t barcodeFirstChar;
+extern uint8_t barcodeThirdChar;
+extern volatile char read_char;
+
+void barcode_setup();
+void barcode_main_loop();
+static int* thickThinClassification();
+static int isVoltageClassificationFull();
+static void flushVoltageClassification();
+static char compareTwoArray ();
+static void appendVoltageClassification(struct voltageClassification voltageClassification);
+static void ADC_IRQ_FIFO_HANDLER();
 
 #endif
+
+/*** End of file ***/

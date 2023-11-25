@@ -10,12 +10,15 @@ extern volatile double leftEncoderSpeed;
 extern volatile double rightEncoderSpeed;
 extern volatile double leftTotalDistance;
 extern volatile double rightTotalDistance;
-
-// void gpio_callback_encoder(uint gpio, uint32_t events);
-// void setupWheelEncoders(void *params);
+extern volatile uint32_t tempLeftNotchCount;
+extern volatile uint32_t tempRightNotchCount;
+extern volatile uint32_t leftNotchCount;
+extern volatile uint32_t rightNotchCount;
 
 void leftEncoder(void *params);
 void rightEncoder(void *params);
 
 
 #endif
+
+/*** End of file ***/

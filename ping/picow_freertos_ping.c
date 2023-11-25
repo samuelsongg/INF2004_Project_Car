@@ -35,9 +35,10 @@
 #include "hardware/encoder.h"
 #include "hardware/irline.h"
 #include "hardware/magnetometer.h"
+#include "hardware/barcode.h"
 
-#define WIFI_SSID       "Galaxy_N"
-#define WIFI_PASSWORD   "12345678"
+#define WIFI_SSID       "samuelsongg"
+#define WIFI_PASSWORD   "9810423x"
 
 #define mbaTASK_MESSAGE_BUFFER_SIZE       ( 60 )
 
@@ -46,6 +47,9 @@ static MessageBufferHandle_t sendDataRightIRSensorCMB;
 static MessageBufferHandle_t sendDataUltrasonicSensorCMB;
 static MessageBufferHandle_t sendDataLeftEncoderCMB;
 static MessageBufferHandle_t sendDataRightEncoderCMB;
+
+volatile int temp_left_notch_count = 0;
+volatile int temp_right_notch_count = 0;
 
 void move_wheels(__unused void *params) {
     initMotor(NULL);
@@ -56,42 +60,45 @@ void move_wheels(__unused void *params) {
     double left_encoder_speed = 0.0;
     double right_encoder_speed = 0.0;
 
+    setLeftSpeed(0.5);
+    setRightSpeed(0.5);
+
     while (true) {
-        // Insert Car Movement Algo...
-        setLeftSpeed(0.5);
-        setRightSpeed(0.5);
+        // If both IR sensors detect white space, move forward.
+        if (left_IR_data < COLOUR_CUTOFF_VALUE && right_IR_data < COLOUR_CUTOFF_VALUE) {
+            setLeftSpeed(0.53);
+            setRightSpeed(0.5);
+            
+            moveForward(NULL);
 
-        // printf("LeftIR: %d, RightIR: %d\n", left_IR_data, right_IR_data);
-        // printf("Ultrasonic: %d\n", final_result);
-        // printf("LeftEncoder: %f, RightEncoder: %f, ultrasonic: %d\n", leftEncoderSpeed, rightEncoderSpeed, final_result);
-        // if (final_result < 15) {
-        //     stop(NULL);
-        // } else 
+            // Make sure both wheels are moving at the same speed.
+            if (left_encoder_speed < right_encoder_speed + 0.6) {
+                increaseLeftSpeed(NULL);
+            }
+            if (left_encoder_speed > right_encoder_speed + 0.6) {
+                decreaseLeftSpeed(NULL);
+            }
+        }
+        // If both IR sensors detect black line, turn.
+        else if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data > COLOUR_CUTOFF_VALUE) {
+            setLeftSpeed(0.5);
+            setRightSpeed(0.5);
 
-        // moveForward(NULL);
+            temp_left_notch_count = leftNotchCount;
+            temp_right_notch_count = rightNotchCount;
 
-        // if (left_IR_data < COLOUR_CUTOFF_VALUE && right_IR_data < COLOUR_CUTOFF_VALUE){
-        //     moveForward(NULL);
-
-        //     if (left_encoder_speed < right_encoder_speed + 0.6) {
-        //         increaseLeftSpeed(NULL);
-        //     }
-        //     if (left_encoder_speed > right_encoder_speed + 0.6) {
-        //         decreaseLeftSpeed(NULL);
-        //     }
-        // }
-
-
-        // } else if (left_IR_data < COLOUR_CUTOFF_VALUE && right_IR_data > COLOUR_CUTOFF_VALUE){
-        //     turnHardLeft(NULL);
-        // } else if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data < COLOUR_CUTOFF_VALUE){
-        //     turnHardRight(NULL);
-        // } else if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data > COLOUR_CUTOFF_VALUE){
-        //     moveBackward(NULL);
-        // } else {
-        //     stop(NULL);
-        // }
-        
+            while ((temp_left_notch_count > (leftNotchCount - 25))) {
+                turnHardRight(NULL);
+            }
+        }
+        else if(left_IR_data > COLOUR_CUTOFF_VALUE) {
+            setLeftSpeed(0.2);
+            setRightSpeed(1);
+        }
+        else if(right_IR_data > COLOUR_CUTOFF_VALUE) {
+            setLeftSpeed(1);
+            setRightSpeed(0.2);
+        }
 
         xMessageBufferReceive(
             sendDataLeftIRSensorCMB,
@@ -104,23 +111,17 @@ void move_wheels(__unused void *params) {
             (void *) &right_IR_data,
             sizeof(right_IR_data),
             portMAX_DELAY);
+
+        xMessageBufferReceive(
+            sendDataUltrasonicSensorCMB,
+            (void *) &ultrasonic_data,
+            sizeof(ultrasonic_data),
+            portMAX_DELAY);
     }
 }
 
-// void read_wheel_encoder(__unused void *params) {
-//     setupWheelEncoders(NULL);
-//     while (true) 
-//     {
-//         vTaskDelay(10);
-
-
-//     }
-    
-// }
-
 void read_ir_sensor(__unused void *params) {
     ir_setup(NULL);
-    // initHashMap(NULL); // Insert key-value pairs for barcode scanner.
 
     while (true) {
         vTaskDelay(10);
@@ -138,25 +139,16 @@ void read_ir_sensor(__unused void *params) {
             (void *) &r_ir_result,
             sizeof(r_ir_result),
             0);
+    }
+}
 
-        ir_main_loop();
+void read_barcode(__unused void *params) {
+    barcode_setup();
 
-        // Troubleshooting purposes.
-        // printf("Left ADC Result: %d\t Right ADC Result: %d\n", l_ir_result, r_ir_result);
-        
-        // For lab demo.
-        // if (ir_pulse_width > 10) {
-        //     printf("Pulse Width: %lld\n", ir_pulse_width);
-        // }
+    while (true) {
+        vTaskDelay(10);
 
-        // if (ir_pulse_width > 10) {
-        //     if (ir_pulse_width > 1000000) {
-        //         printf("Left ADC Result: %d\t Right ADC Result: %d\t Line Thickness: Thick: %lld\n", l_ir_result, r_ir_result, ir_pulse_width);
-        //     }
-        //     else {
-        //         printf("Left ADC Result: %d\t Right ADC Result: %d\t Line Thickness: Thin: %lld\n", l_ir_result, r_ir_result, ir_pulse_width);
-        //     }
-        // }
+        barcode_main_loop();
     }
 }
 
@@ -212,7 +204,6 @@ void interrupt_task(__unused void *params) {
 
     while (true) {
         vTaskDelay(10);
-        // tight_loop_contents();
     }
 }
 
@@ -244,7 +235,6 @@ void web_server_task(__unused void *params) {
     while (true)
     {
         vTaskDelay(10);
-        // printf("Test\n");
     }
 
     cyw43_arch_deinit();
@@ -261,6 +251,8 @@ void vLaunch(void) {
     xTaskCreate(read_ultrasonic_sensor, "ReadUltrasonicSensorThread", configMINIMAL_STACK_SIZE, NULL, 2, &readUltrasonicSensorTask);
     TaskHandle_t interruptTask;
     xTaskCreate(interrupt_task, "InterruptThread", configMINIMAL_STACK_SIZE, NULL, 2, &interruptTask);
+    TaskHandle_t readBarcodeTask;
+    xTaskCreate(read_barcode, "ReadBarcodeThread", configMINIMAL_STACK_SIZE, NULL, 2, &readBarcodeTask);
     // TaskHandle_t magnetometerTask;
     // xTaskCreate(read_magnetometer_task, "MagnetometerThread", configMINIMAL_STACK_SIZE, NULL, 5, &magnetometerTask);
 
@@ -277,8 +269,11 @@ void vLaunch(void) {
 int main(void)
 {
     stdio_init_all();
-    // adc_init();
+    sleep_ms(3000);
+    adc_init();
     vLaunch();
 
     return 0;
 }
+
+/*** End of file ***/

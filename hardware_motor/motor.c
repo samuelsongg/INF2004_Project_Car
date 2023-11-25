@@ -3,13 +3,12 @@
 #include "hardware/gpio.h"
 #include "hardware/pwm.h"
 
-// Global variables for PWM slice numbers
 uint slice_num_left;
 uint slice_num_right;
 volatile int left_level = 0;
 volatile int right_level = 0;
 
-// Function to initialize motor
+// Function to initialize the motor
 void initMotor(void *params) {
     // Setting up GPIO functions
     gpio_set_function(LEFT_WHEEL, GPIO_FUNC_PWM);
