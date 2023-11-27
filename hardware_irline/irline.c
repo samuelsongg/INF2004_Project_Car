@@ -28,6 +28,14 @@ void read_ir(void *params) {
     r_ir_result = adc_read();
 }
 
+uint32_t getLeftIRSensorValue(void *params) {
+    return l_ir_result;
+}
+
+uint32_t getRightIRSensorValue(void *params) {
+    return r_ir_result;
+}
+
 // Setup function for IR sensors
 void ir_setup(void *params) {
     // Initialize GPIO pins for IR sensors' GND

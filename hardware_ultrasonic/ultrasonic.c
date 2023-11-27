@@ -9,7 +9,11 @@ uint64_t width;
 int successful_pulse;
 absolute_time_t start_time;
 absolute_time_t end_time;
-uint final_result = -1;  // Initialize final result with an error value
+uint ultrasonic_distance = -1;  // Initialize final result with an error value
+
+uint getUltrasonicFinalResult(void *params) {
+    return ultrasonic_distance;
+}
 
 // Function to initialize ultrasonic sensor GPIO pins
 void initUltrasonic(void *params) {
@@ -47,9 +51,9 @@ uint64_t getDistanceUltrasonic(void *params) {
 
     if (successful_pulse == 1) {
         end_time = get_absolute_time();
-        final_result = absolute_time_diff_us(start_time, end_time) / 29 / 2; // Calculate distance based on time difference
+        ultrasonic_distance = absolute_time_diff_us(start_time, end_time) / 29 / 2; // Calculate distance based on time difference
 
-        return final_result;
+        return ultrasonic_distance;
     }
     else {
         return -1;  // Return error value if measurement was unsuccessful

@@ -42,81 +42,62 @@
 
 #define mbaTASK_MESSAGE_BUFFER_SIZE       ( 60 )
 
-static MessageBufferHandle_t sendDataLeftIRSensorCMB;
-static MessageBufferHandle_t sendDataRightIRSensorCMB;
-static MessageBufferHandle_t sendDataUltrasonicSensorCMB;
-static MessageBufferHandle_t sendDataLeftEncoderCMB;
-static MessageBufferHandle_t sendDataRightEncoderCMB;
-
-volatile int temp_left_notch_count = 0;
-volatile int temp_right_notch_count = 0;
-
 void move_wheels(__unused void *params) {
     initMotor(NULL);
-
-    int left_IR_data = 0;
-    int right_IR_data = 0;
-    int ultrasonic_data = 0;
-    double left_encoder_speed = 0.0;
-    double right_encoder_speed = 0.0;
 
     setLeftSpeed(0.5);
     setRightSpeed(0.5);
 
     while (true) {
+        int left_IR_data = getLeftIRSensorValue(NULL);
+        int right_IR_data = getRightIRSensorValue(NULL);
+
         // If both IR sensors detect white space, move forward.
-        if (left_IR_data < COLOUR_CUTOFF_VALUE && right_IR_data < COLOUR_CUTOFF_VALUE) {
-            setLeftSpeed(0.53);
-            setRightSpeed(0.5);
-            
-            moveForward(NULL);
+        if (getUltrasonicFinalResult(NULL) < 15) {
+            stop(NULL);
+        }
+        else {
+            // If both IRs detect white, move forward.
+            if (left_IR_data < COLOUR_CUTOFF_VALUE && right_IR_data < COLOUR_CUTOFF_VALUE) {
+                setLeftSpeed(0.53);
+                setRightSpeed(0.5);
+                
+                moveForward(NULL);
 
-            // Make sure both wheels are moving at the same speed.
-            if (left_encoder_speed < right_encoder_speed + 0.6) {
-                increaseLeftSpeed(NULL);
+                double left_encoder_speed = getLeftSpeed(NULL);
+                double right_encoder_speed = getRightSpeed(NULL);
+
+                // Make sure both wheels are moving at the same speed.
+                if (left_encoder_speed < right_encoder_speed + 0.6) {
+                    increaseLeftSpeed(NULL);
+                }
+                if (left_encoder_speed > right_encoder_speed + 0.6) {
+                    decreaseLeftSpeed(NULL);
+                }
             }
-            if (left_encoder_speed > right_encoder_speed + 0.6) {
-                decreaseLeftSpeed(NULL);
+            // If both IR sensors detect black line, turn.
+            else if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data > COLOUR_CUTOFF_VALUE) {
+                setLeftSpeed(0.5);
+                setRightSpeed(0.5);
+
+                int temp_left_notch_count = getLeftNotchCount(NULL);
+
+                // Turn right until the left wheel has turned 25 notches.
+                while ((temp_left_notch_count > (getLeftNotchCount(NULL) - 25))) {
+                    turnHardRight(NULL);
+                }
+            }
+            // If left IR detects black, angle right.
+            else if(left_IR_data > COLOUR_CUTOFF_VALUE) {
+                setLeftSpeed(0.2);
+                setRightSpeed(1);
+            }
+            // If right IR detects black, angle left.
+            else if(right_IR_data > COLOUR_CUTOFF_VALUE) {
+                setLeftSpeed(1);
+                setRightSpeed(0.2);
             }
         }
-        // If both IR sensors detect black line, turn.
-        else if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data > COLOUR_CUTOFF_VALUE) {
-            setLeftSpeed(0.5);
-            setRightSpeed(0.5);
-
-            temp_left_notch_count = leftNotchCount;
-            temp_right_notch_count = rightNotchCount;
-
-            while ((temp_left_notch_count > (leftNotchCount - 25))) {
-                turnHardRight(NULL);
-            }
-        }
-        else if(left_IR_data > COLOUR_CUTOFF_VALUE) {
-            setLeftSpeed(0.2);
-            setRightSpeed(1);
-        }
-        else if(right_IR_data > COLOUR_CUTOFF_VALUE) {
-            setLeftSpeed(1);
-            setRightSpeed(0.2);
-        }
-
-        xMessageBufferReceive(
-            sendDataLeftIRSensorCMB,
-            (void *) &left_IR_data,
-            sizeof(left_IR_data),
-            portMAX_DELAY);
-
-        xMessageBufferReceive(
-            sendDataRightIRSensorCMB,
-            (void *) &right_IR_data,
-            sizeof(right_IR_data),
-            portMAX_DELAY);
-
-        xMessageBufferReceive(
-            sendDataUltrasonicSensorCMB,
-            (void *) &ultrasonic_data,
-            sizeof(ultrasonic_data),
-            portMAX_DELAY);
     }
 }
 
@@ -127,18 +108,6 @@ void read_ir_sensor(__unused void *params) {
         vTaskDelay(10);
 
         read_ir(NULL);
-
-        xMessageBufferSend(
-            sendDataLeftIRSensorCMB,
-            (void *) &l_ir_result,
-            sizeof(l_ir_result),
-            0);
-
-        xMessageBufferSend(
-            sendDataRightIRSensorCMB,
-            (void *) &r_ir_result,
-            sizeof(r_ir_result),
-            0);
     }
 }
 
@@ -173,16 +142,12 @@ void read_ultrasonic_sensor(__unused void *params) {
         vTaskDelay(10);
         // Function to pulse ultrasonic sensor.
         pulseUltrasonic(NULL);
+
+        int ultrasonic_distance = getUltrasonicFinalResult(NULL);
             
-        // -1 means no successful pulse.
-        if (final_result != -1) {
-            xMessageBufferSend(
-                sendDataUltrasonicSensorCMB,
-                (void *) &final_result,
-                sizeof(final_result),
-                0);
-            
-            final_result = -1;
+        // -1 means no successful pulse. Reset the distance to -1.
+        if (ultrasonic_distance != -1) {
+            ultrasonic_distance = -1;
         }
     }
 }
@@ -253,14 +218,8 @@ void vLaunch(void) {
     xTaskCreate(interrupt_task, "InterruptThread", configMINIMAL_STACK_SIZE, NULL, 2, &interruptTask);
     TaskHandle_t readBarcodeTask;
     xTaskCreate(read_barcode, "ReadBarcodeThread", configMINIMAL_STACK_SIZE, NULL, 2, &readBarcodeTask);
-    // TaskHandle_t magnetometerTask;
-    // xTaskCreate(read_magnetometer_task, "MagnetometerThread", configMINIMAL_STACK_SIZE, NULL, 5, &magnetometerTask);
-
-    sendDataLeftIRSensorCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
-    sendDataRightIRSensorCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
-    sendDataUltrasonicSensorCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
-    sendDataLeftEncoderCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
-    sendDataRightEncoderCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
+    TaskHandle_t magnetometerTask;
+    xTaskCreate(read_magnetometer_task, "MagnetometerThread", configMINIMAL_STACK_SIZE, NULL, 5, &magnetometerTask);
 
     /* Start the tasks and timer running. */
     vTaskStartScheduler();

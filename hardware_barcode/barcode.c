@@ -53,17 +53,11 @@ static char* X_ARRAY_MAP = "121303130";
 static char* Y_ARRAY_MAP = "021303131";
 static char* Z_ARRAY_MAP = "120303131";
 
-static int waitingForStart = 1;
-
 //code 39 format of asterisk using enum bartype.
 static char* ASTERISK_ARRAY_MAP = "121303031";
 
-static int barcodeArr[BARCODE_ARR_SIZE];
-
 static uint32_t res = 0;
 static uint16_t prevAvg = 0;
-static uint16_t max = 0;
-static uint16_t min = 3000;
 
 static int i = 0 ;
 static int barcode_arr_index = 1;
@@ -83,7 +77,7 @@ struct voltageClassification {
     absolute_time_t blockStart;
     int64_t  blockLength;
     enum bartype type;
-} voltageClassification;
+};
 
 // queue for voltageclassifications of length 9.
 static struct voltageClassification voltageClassifications[BARCODE_BUF_SIZE];
@@ -324,6 +318,10 @@ static void appendVoltageClassification(struct voltageClassification voltageClas
             appendToBarcodeRead(read);
         }
     }
+}
+
+char getBarcodeChar() {
+    return read_char;
 }
 
 static void ADC_IRQ_FIFO_HANDLER() {

@@ -17,11 +17,7 @@
 #define ADC_DIFFERENCE_THRESHHOLD 50
 #define SAMPLE_SIZE 10000
 
-extern struct voltageClassification voltageClassification;
-extern uint8_t barcodeSecondChar;
-extern uint8_t barcodeFirstChar;
-extern uint8_t barcodeThirdChar;
-extern volatile char read_char;
+struct voltageClassification;
 
 void barcode_setup();
 void barcode_main_loop();
@@ -31,6 +27,7 @@ static void flushVoltageClassification();
 static char compareTwoArray ();
 static void appendVoltageClassification(struct voltageClassification voltageClassification);
 static void ADC_IRQ_FIFO_HANDLER();
+char getBarcodeChar();
 
 #endif
 

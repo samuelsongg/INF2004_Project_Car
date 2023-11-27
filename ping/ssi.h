@@ -11,7 +11,7 @@ u16_t ssi_handler(int iIndex, char *pcInsert, int iInsertLen) {
   switch (iIndex) {
   case 0:
     {
-      printed = snprintf(pcInsert, iInsertLen, "%c", read_char);
+      printed = snprintf(pcInsert, iInsertLen, "%c", getBarcodeChar());
     }
     break;
   default:

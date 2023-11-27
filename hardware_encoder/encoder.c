@@ -8,14 +8,30 @@ volatile uint32_t tempLeftNotchCount = 0;
 volatile double leftTotalDistance = 0.0;
 volatile double tempLeftTotalDistance = 0.0;
 volatile uint64_t leftLastNotchTime = 0;
-volatile double leftEncoderSpeed;
+volatile double leftEncoderSpeed = 0.0;
 
 volatile uint32_t rightNotchCount = 0;
 volatile uint32_t tempRightNotchCount = 0;
 volatile double rightTotalDistance = 0.0;
 volatile double tempRightTotalDistance = 0.0;
 volatile uint64_t rightLastNotchTime = 0;
-volatile double rightEncoderSpeed;
+volatile double rightEncoderSpeed = 0.0;
+
+double getLeftSpeed(void *params) {
+    return leftEncoderSpeed;
+}
+
+double getRightSpeed(void *params) {
+    return rightEncoderSpeed;
+}
+
+uint32_t getLeftNotchCount(void *params) {
+    return leftNotchCount;
+}
+
+uint32_t getRightNotchCount(void *params) {
+    return rightNotchCount;
+}
 
 void leftEncoder(void *params) {
     // Increment the count of notches detected for the left wheel

@@ -9,14 +9,12 @@
 #define ULTRASONIC_TRIG 11
 #define ULTRASONIC_TIMEOUT 26100
 
-// Global variable declaration for storing the final ultrasonic distance result
-extern uint final_result;
-
 // Function declarations for ultrasonic sensor operations
 void initUltrasonic(void *params);
 void pulseUltrasonic(void *params);
 uint64_t getDistanceUltrasonic(void *params);
 void gpio_callback_ultrasonic(uint gpio, uint32_t events);
+uint getUltrasonicFinalResult(void *params);
 
 #endif
 

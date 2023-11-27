@@ -11,14 +11,11 @@
 #define COLOUR_CUTOFF_VALUE 1000 // Color difference between black and white. Use IR sensor to measure.
 #define PULSE_WIDTH_TIMEOUT 1000
 
-// Declare global variables for IR sensor results and pulse width
-extern volatile uint32_t l_ir_result;
-extern volatile uint32_t r_ir_result;
-extern volatile uint64_t ir_pulse_width;
-
 // Function prototypes for IR sensor setup and reading functions
 void ir_setup(void *params);
 void read_ir(void *params);
+uint32_t getLeftIRSensorValue(void *params);
+uint32_t getRightIRSensorValue(void *params);
 
 #endif
 
