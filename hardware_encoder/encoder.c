@@ -1,8 +1,15 @@
+/** @file encoder.c
+ *
+ * @brief This module handles the operations related to wheel encoders in a robotic car.
+ *        It includes functions for calculating the speed and distance traveled by each wheel.
+ */
+
 #include <stdio.h>
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
 #include "hardware/encoder.h"
 
+// Global variables to store measurement data for the left wheel
 volatile uint32_t leftNotchCount = 0;
 volatile uint32_t tempLeftNotchCount = 0;
 volatile double leftTotalDistance = 0.0;
@@ -10,6 +17,7 @@ volatile double tempLeftTotalDistance = 0.0;
 volatile uint64_t leftLastNotchTime = 0;
 volatile double leftEncoderSpeed = 0.0;
 
+// Global variables to store measurement data for the right wheel
 volatile uint32_t rightNotchCount = 0;
 volatile uint32_t tempRightNotchCount = 0;
 volatile double rightTotalDistance = 0.0;
@@ -17,22 +25,52 @@ volatile double tempRightTotalDistance = 0.0;
 volatile uint64_t rightLastNotchTime = 0;
 volatile double rightEncoderSpeed = 0.0;
 
+/*!
+ * @brief Retrieves the current speed of the left wheel.
+ *
+ * @param[in] params Optional parameters (unused in this function).
+ * @return The speed of the left wheel.
+ */
 double getLeftSpeed(void *params) {
     return leftEncoderSpeed;
 }
 
+/*!
+ * @brief Retrieves the current speed of the right wheel.
+ *
+ * @param[in] params Optional parameters (unused in this function).
+ * @return The speed of the right wheel.
+ */
 double getRightSpeed(void *params) {
     return rightEncoderSpeed;
 }
 
+/*!
+ * @brief Retrieves the total count of notches detected by the left wheel encoder.
+ *
+ * @param[in] params Optional parameters (unused in this function).
+ * @return The total notch count for the left wheel.
+ */
 uint32_t getLeftNotchCount(void *params) {
     return leftNotchCount;
 }
 
+/*!
+ * @brief Retrieves the total count of notches detected by the right wheel encoder.
+ *
+ * @param[in] params Optional parameters (unused in this function).
+ * @return The total notch count for the right wheel.
+ */
 uint32_t getRightNotchCount(void *params) {
     return rightNotchCount;
 }
 
+/*!
+ * @brief Interrupt service routine for the left wheel encoder.
+ *        Increments the notch count and calculates the speed of the left wheel.
+ *
+ * @param[in] params Optional parameters (unused in this function).
+ */
 void leftEncoder(void *params) {
     // Increment the count of notches detected for the left wheel
     leftNotchCount++;
@@ -62,6 +100,12 @@ void leftEncoder(void *params) {
     }
 }
 
+/*!
+ * @brief Interrupt service routine for the right wheel encoder.
+ *        Increments the notch count and calculates the speed of the right wheel.
+ *
+ * @param[in] params Optional parameters (unused in this function).
+ */
 void rightEncoder(void *params) {
     // Increment the count of notches detected for the right wheel
     rightNotchCount++;
