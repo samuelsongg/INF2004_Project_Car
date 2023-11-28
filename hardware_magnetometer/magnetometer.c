@@ -1,8 +1,13 @@
+/** @file magnetometer.c
+ *
+ * @brief This module handles the initialization and data reading from the magnetometer sensor.
+ */
+
 #include <stdio.h>
 #include <math.h>
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
-//
+#include "magnetometer.h"
 
 // Constants for I2C and sensor addresses
 #define MAGNETOMETER_ADDRESS 0x1E  // I2C address for GY-511 magnetometer
@@ -10,7 +15,11 @@
 #define GY511_DATA 0x03            // Data Output Register for magnetometer
 #define ACCELEROMETER_ADDRESS 0x19 // I2C address for the accelerometer
 
-// Function to initialize I2C communication
+/*!
+ * @brief Initializes the I2C communication for the magnetometer and accelerometer.
+ *
+ * @param[in] params Optional parameters (unused in this function).
+ */
 void init_i2c(void *params) {
     i2c_init(i2c0, 400000);          // Initialize I2C with a 400 kHz baud rate
     gpio_set_function(0, GPIO_FUNC_I2C);  // Set GPIO0 as SDA
@@ -19,7 +28,11 @@ void init_i2c(void *params) {
     gpio_pull_up(1);                  // Enable pull-up on SCL
 }
 
-// Function to initialize the accelerometer
+/*!
+ * @brief Initializes the accelerometer with specific configurations.
+ *
+ * @param[in] params Optional parameters (unused in this function).
+ */
 void init_accelerometer(void *params) {
     // Configuration register addresses and values for the accelerometer setup
     const uint8_t CTRL_REG1_A = 0x20;
@@ -37,7 +50,11 @@ void init_accelerometer(void *params) {
     i2c_write_blocking(i2c0, ACCELEROMETER_ADDRESS, config, sizeof(config), true);
 }
 
-// Function to read data from the accelerometer
+/*!
+ * @brief Reads data from the accelerometer and processes it.
+ *
+ * @param[in] params Optional parameters (unused in this function).
+ */
 void read_accelerometer_data(void *params) {
     // Address for the accelerometer data registers with auto-increment bit set
     const uint8_t OUT_X_L_A = 0x28 | 0x80;
@@ -56,7 +73,11 @@ void read_accelerometer_data(void *params) {
     // printf("heading angle:", )
 }
 
-// Function to initialize the magnetometer
+/*!
+ * @brief Initializes the magnetometer with specific configurations for continuous measurements.
+ *
+ * @param[in] params Optional parameters (unused in this function).
+ */
 void init_magnetometer(void *params) {
     // Set the magnetometer to continuous measurement mode with default configuration
     // Addresses and values for the magnetometer control registers
@@ -82,7 +103,11 @@ void init_magnetometer(void *params) {
     i2c_write_blocking(i2c0, MAGNETOMETER_ADDRESS, config, sizeof(config), true);
 }
 
-// Function to read data from the magnetometer
+/*!
+ * @brief Reads data from the magnetometer and processes it to calculate the magnetic heading.
+ *
+ * @param[in] params Optional parameters (unused in this function).
+ */
 void read_magnetometer_data(void *params) {
     uint8_t reg[1] = {0};
     uint8_t data[1] = {0};
@@ -178,6 +203,11 @@ void read_magnetometer_data(void *params) {
 
 // }
 
+/*!
+ * @brief Sets up the magnetometer for use, including initializing I2C communication and configuring the sensor.
+ *
+ * @param[in] params Optional parameters (unused in this function).
+ */
 void setup_magnetometer(void *params) {
     stdio_init_all();
     init_i2c(NULL);
@@ -185,8 +215,15 @@ void setup_magnetometer(void *params) {
     init_accelerometer(NULL);
 }
 
+/*!
+ * @brief Main function to read data from the magnetometer.
+ *
+ * @param[in] params Optional parameters (unused in this function).
+ */
 void read_magnetometer(void *params) {
     // printf("--------------------\n");
     // calculate_and_display_heading(x, y);
     read_magnetometer_data(NULL);
 }
+
+/*** End of file ***/
