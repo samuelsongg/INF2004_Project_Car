@@ -6,9 +6,6 @@
  * This module contains the definitions and function declarations necessary for
  * initializing and using an ultrasonic sensor. Functions include sensor initialization,
  * triggering pulse, distance measurement, and GPIO interrupt handling.
- *
- * @par
- * COPYRIGHT NOTICE: (c) 2023 Team 61. All rights reserved.
  */
 #ifndef _ULTRASONIC_H
 #define _ULTRASONIC_H
