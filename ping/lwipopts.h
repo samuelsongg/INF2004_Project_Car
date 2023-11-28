@@ -1,8 +1,16 @@
+/**
+ * @file lwipopts.h
+ * @brief Configuration options for lwIP TCP/IP stack.
+ *
+ * This file contains the configuration macros for the lwIP TCP/IP stack
+ * customization for a specific project. It includes common settings from
+ * 'lwipopts_examples_common.h' and defines additional settings for system,
+ * threading, and HTTP server configuration.
+ */
+
 #ifndef _LWIPOPTS_H
 #define _LWIPOPTS_H
 
-//
-//
 // This example uses a common include to avoid repetition
 #include "lwipopts_examples_common.h"
 

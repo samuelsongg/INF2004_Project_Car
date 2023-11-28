@@ -1,3 +1,12 @@
+/**
+ * @file picow_freetos_ping.c
+ * @brief Main file for the car using FreeRTOS.
+ *
+ * This file contains the main function and task definitions for controlling the car.
+ * It includes initializations for various hardware components and tasks for sensor
+ * reading, wheel movement, web server operation, and other functionalities.
+ */
+
 // Standard libraries.
 #include <stdio.h>
 #include <stdlib.h> // for barcode codes
@@ -44,12 +53,10 @@
 #define mbaTASK_MESSAGE_BUFFER_SIZE       ( 60 )
 
 /**
- * Move wheels task.
- * This function controls the movement of wheels based on sensor data.
+ * @brief Task to control wheel movement based on sensor data.
  *
- * @param params Parameters for the task (unused).
+ * @param params Task parameters
  */
-
 void move_wheels(__unused void *params) {
     // Initialize motor control
     initMotor(NULL);
@@ -111,6 +118,11 @@ void move_wheels(__unused void *params) {
     }
 }
 
+/**
+ * @brief Task to read IR sensor data at regular intervals.
+ *
+ * @param params Task parameters
+ */
 void read_ir_sensor(__unused void *params) {
     // Setup IR sensor
     ir_setup(NULL);
@@ -122,6 +134,11 @@ void read_ir_sensor(__unused void *params) {
     }
 }
 
+/**
+ * @brief Task to continuously read barcode data.
+ *
+ * @param params Task parameters
+ */
 void read_barcode(__unused void *params) {
     // Setup barcode reading
     barcode_setup();
@@ -133,6 +150,12 @@ void read_barcode(__unused void *params) {
     }
 }
 
+/**
+ * @brief GPIO callback function to handle encoder and ultrasonic sensor inputs.
+ *
+ * @param gpio GPIO pin number.
+ * @param events Event type that triggered the callback.
+ */
 void gpio_callback(uint gpio, uint32_t events) {
     // Handle encoder inputs
     if (gpio == LEFT_ENCODER_PIN) {
@@ -149,6 +172,11 @@ void gpio_callback(uint gpio, uint32_t events) {
     }
 }
 
+/**
+ * @brief Task to read ultrasonic sensor data at regular intervals.
+ *
+ * @param params Task parameters
+ */
 void read_ultrasonic_sensor(__unused void *params) {
     // Initialize ultrasonic sensor
     initUltrasonic(NULL);
@@ -167,6 +195,11 @@ void read_ultrasonic_sensor(__unused void *params) {
     }
 }
 
+/**
+ * @brief Task to continuously read magnetometer data.
+ *
+ * @param params Task parameters
+ */
 void read_magnetometer_task(__unused void *params) {
     // Setup magnetometer
     setup_magnetometer(NULL);
@@ -178,6 +211,11 @@ void read_magnetometer_task(__unused void *params) {
     }
 }
 
+/**
+ * @brief Task to set up and manage GPIO interrupts.
+ *
+ * @param params Task parameters (unused).
+ */
 void interrupt_task(__unused void *params) {
     // Setup GPIO interrupts
     gpio_set_irq_enabled_with_callback(LEFT_ENCODER_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_callback);
@@ -189,6 +227,11 @@ void interrupt_task(__unused void *params) {
     }
 }
 
+/**
+ * @brief Task to initialize and run the web server.
+ *
+ * @param params Task parameters (unused).
+ */
 void web_server_task(__unused void *params) {
     // Setup Webserver
     cyw43_arch_init();
@@ -223,6 +266,9 @@ void web_server_task(__unused void *params) {
     cyw43_arch_deinit();
 }
 
+/**
+ * @brief Launches all the FreeRTOS tasks.
+ */
 void vLaunch(void) {
     TaskHandle_t webServerTask;
     xTaskCreate(web_server_task, "webserverThread", configMINIMAL_STACK_SIZE, NULL, 2, &webServerTask);
@@ -243,6 +289,11 @@ void vLaunch(void) {
     vTaskStartScheduler();
 }
 
+/**
+ * @brief Main function to initialize the system and start the scheduler.
+ *
+ * @return Execution status code (should not return under normal operation).
+ */
 int main(void)
 {
     stdio_init_all();

@@ -1,3 +1,7 @@
+/**
+ * @brief This file contains the embedded web files for the HTTP server.
+ */
+
 static const unsigned char data_index_shtml[] = {
 	/* .\index.shtml */
 	0x2f, 0x69, 0x6e, 0x64, 0x65, 0x78, 0x2e, 0x73, 0x68, 0x74, 0x6d, 0x6c, 0,

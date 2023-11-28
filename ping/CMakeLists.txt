@@ -1,7 +1,6 @@
 set(WIFI_SSID "SSID")
 set(WIFI_PASSWORD "PASSWORD")
 
-
 if (EXISTS ${PICO_LWIP_CONTRIB_PATH}/apps/ping/ping.c)
     add_executable(picow_freertos_ping_nosys
             picow_freertos_ping.c
