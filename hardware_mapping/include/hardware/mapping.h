@@ -1,14 +1,12 @@
 /**
  * @file mapping.h
  *
- * @brief Provides functions for interfacing with an ultrasonic sensor.
+ * @brief Provides functions for interfacing with a mapping system.
  *
  * This module contains the definitions and function declarations necessary for
- * initializing and using an ultrasonic sensor. Functions include sensor initialization,
- * triggering pulse, distance measurement, and GPIO interrupt handling.
+ * initializing and using the mapping algorithm. Functions include sensor initialization,
+ * direction handling, map updating, and path finding.
  *
- * @par
- * COPYRIGHT NOTICE: (c) 2023 Team 61. All rights reserved.
  */
 
 #ifndef _MAPPING_H
