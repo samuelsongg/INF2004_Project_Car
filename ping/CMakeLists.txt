@@ -1,5 +1,3 @@
-
-# Fill this in sir
 set(WIFI_SSID "SSID")
 set(WIFI_PASSWORD "PASSWORD")
 
@@ -34,8 +32,8 @@ if (EXISTS ${PICO_LWIP_CONTRIB_PATH}/apps/ping/ping.c)
             ${PICO_LWIP_CONTRIB_PATH}/apps/ping/ping.c 
             )
     target_compile_definitions(picow_freertos_ping_sys PRIVATE
-            NO_SYS=0            # don't want NO_SYS (generally this would be in your lwipopts.h)
-            LWIP_SOCKET=1       # we need the socket API (generally this would be in your lwipopts.h)
+            NO_SYS=0
+            LWIP_SOCKET=1
             PING_USE_SOCKETS=1
             )
     target_include_directories(picow_freertos_ping_sys PRIVATE

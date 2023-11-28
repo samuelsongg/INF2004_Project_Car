@@ -37,18 +37,28 @@
 #include "hardware/magnetometer.h"
 #include "hardware/barcode.h"
 
+// Wifi Configuration
 #define WIFI_SSID       "SSID"
 #define WIFI_PASSWORD   "PASSWORD"
 
 #define mbaTASK_MESSAGE_BUFFER_SIZE       ( 60 )
 
+/**
+ * Move wheels task.
+ * This function controls the movement of wheels based on sensor data.
+ *
+ * @param params Parameters for the task (unused).
+ */
+
 void move_wheels(__unused void *params) {
+    // Initialize motor control
     initMotor(NULL);
 
     setLeftSpeed(0.5);
     setRightSpeed(0.5);
 
     while (true) {
+        // Read IR sensor data
         int left_IR_data = getLeftIRSensorValue(NULL);
         int right_IR_data = getRightIRSensorValue(NULL);
 
@@ -102,26 +112,29 @@ void move_wheels(__unused void *params) {
 }
 
 void read_ir_sensor(__unused void *params) {
+    // Setup IR sensor
     ir_setup(NULL);
 
     while (true) {
+        // Read IR sensor at regular intervals
         vTaskDelay(10);
-
         read_ir(NULL);
     }
 }
 
 void read_barcode(__unused void *params) {
+    // Setup barcode reading
     barcode_setup();
 
     while (true) {
         vTaskDelay(10);
-
+        // Function to read barcode
         barcode_main_loop();
     }
 }
 
 void gpio_callback(uint gpio, uint32_t events) {
+    // Handle encoder inputs
     if (gpio == LEFT_ENCODER_PIN) {
         leftEncoder(NULL);
     }
@@ -130,12 +143,14 @@ void gpio_callback(uint gpio, uint32_t events) {
         rightEncoder(NULL);
     }
 
+    // Handle ultrasonic sensor echo
     if (gpio == ULTRASONIC_ECHO) {
         getDistanceUltrasonic(NULL);
     }
 }
 
 void read_ultrasonic_sensor(__unused void *params) {
+    // Initialize ultrasonic sensor
     initUltrasonic(NULL);
 
     while (true) {
@@ -153,16 +168,18 @@ void read_ultrasonic_sensor(__unused void *params) {
 }
 
 void read_magnetometer_task(__unused void *params) {
+    // Setup magnetometer
     setup_magnetometer(NULL);
 
     while (true) {
         vTaskDelay(10);
-
+        // Function to read magnetometer
         read_magnetometer(NULL);
     }
 }
 
 void interrupt_task(__unused void *params) {
+    // Setup GPIO interrupts
     gpio_set_irq_enabled_with_callback(LEFT_ENCODER_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_callback);
     gpio_set_irq_enabled_with_callback(RIGHT_ENCODER_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_callback);
     gpio_set_irq_enabled_with_callback(ULTRASONIC_ECHO, GPIO_IRQ_EDGE_RISE, true, &gpio_callback);
@@ -173,6 +190,7 @@ void interrupt_task(__unused void *params) {
 }
 
 void web_server_task(__unused void *params) {
+    // Setup Webserver
     cyw43_arch_init();
     cyw43_arch_enable_sta_mode();
     cyw43_arch_lwip_begin();

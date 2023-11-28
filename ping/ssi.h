@@ -3,31 +3,38 @@
 #include "hardware/adc.h"
 #include "hardware/barcode.h"
 
-// SSI tags - tag length limited to 8 bytes by default
-const char * ssi_tags[] = {"code"};
+// Define SSI tags - tag length limited to 8 bytes by default
+static const char * const ssi_tags[] = {"code"};
+static u16_t ssi_handler(int iIndex, char *pcInsert, int iInsertLen)
+{
+    size_t printed; // Variable to store the number of characters printed
 
-u16_t ssi_handler(int iIndex, char *pcInsert, int iInsertLen) {
-  size_t printed;
-  switch (iIndex) {
-  case 0:
-    {
-      printed = snprintf(pcInsert, iInsertLen, "%c", getBarcodeChar());
+    switch (iIndex) {
+    case 0:
+        // Handle the first SSI tag - output a character from the barcode
+        printed = snprintf(pcInsert, iInsertLen, "%c", getBarcodeChar());
+        break;
+
+    default:
+        // For unrecognized tags, no characters are printed
+        printed = 0;
+        break;
     }
-    break;
-  default:
-    printed = 0;
-    break;
-  }
 
-  return (u16_t)printed;
+    return (u16_t)printed;
 }
 
-// Initialise the SSI handler
-void ssi_init() {
-  // Initialise ADC (internal pin)
-  // adc_init();
-  // adc_set_temp_sensor_enabled(true);
-  // adc_select_input(4);
+/**
+ * Initialize the SSI handler.
+ * This function sets up the SSI handler for processing SSI tags in HTML.
+ */
+void ssi_init(void)
+{
+    // Initialize ADC (internal pin) - optional, currently commented out
+    // adc_init();
+    // adc_set_temp_sensor_enabled(true);
+    // adc_select_input(4);
 
-  http_set_ssi_handler(ssi_handler, ssi_tags, LWIP_ARRAYSIZE(ssi_tags));
+    // Set the SSI handler with the defined tags
+    http_set_ssi_handler(ssi_handler, ssi_tags, LWIP_ARRAYSIZE(ssi_tags));
 }

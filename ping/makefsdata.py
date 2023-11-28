@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+# The script will help to convert the shtml data under html_files into C
+
 # This script is by @rspeir on GitHub: 
 # https://github.com/krzmaz/pico-w-webserver-example/pull/1/files/4b3e78351dd236f213da9bebbb20df690d470476#diff-e675c4a367e382db6f9ba61833a58c62029d8c71c3156a9f238b612b69de279d
 # Renamed output to avoid linking incorrect file
@@ -60,13 +62,13 @@ for file in files:
     output.write("static const unsigned char data{}[] = {{\n".format(fvar))
     output.write("\t/* {} */\n\t".format(file))
 
-    #first set of hex data encodes the filename
+    #First set of hex data encodes the filename
     b = bytes(file[1:].replace('\\', '/'), 'utf-8')     #change DOS path separator to forward slash     
     for byte in binascii.hexlify(b, b' ', 1).split():
         output.write("0x{}, ".format(byte.decode()))
     output.write("0,\n\t")
 
-    #second set of hex data is the HTTP header/mime type we generated above
+    #Second set of hex data is the HTTP header/mime type we generated above
     b = bytes(header, 'utf-8')
     count = 0
     for byte in binascii.hexlify(b, b' ', 1).split():
@@ -77,7 +79,7 @@ for file in files:
             count = 0
     output.write("\n\t")
 
-    #finally, dump raw hex data from files
+    #Dump raw hex data from files
     with open(file, 'rb') as f:
         count = 0
         while(byte := f.read(1)):
