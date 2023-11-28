@@ -1,3 +1,15 @@
+/**
+ * @file barcode.c
+ *
+ * @brief Provides functions for barcode reading and processing.
+ *
+ * This file contains the implementation of functions related to barcode reading using IR sensors.
+ * It includes the setup of ADC and GPIO for barcode detection, functions to process and classify
+ * the barcode signals, and utility functions for barcode data handling. The file supports barcode
+ * reading in Code 39 format, providing a foundational framework for barcode detection and interpretation.
+ *
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
@@ -13,11 +25,12 @@
 #include "hardware/gpio.h"
 #include "hardware/barcode.h"
 
+// Variables to store individual characters of the barcode
 uint8_t barcodeFirstChar=0;
 uint8_t barcodeSecondChar=0;
 uint8_t barcodeThirdChar=0;
 
-// Barcode types.
+// Enum for representing different types of barcode elements
 enum bartype {
     THICK_BLACK, // 0
     THIN_BLACK, // 1
@@ -25,7 +38,7 @@ enum bartype {
     THIN_WHITE // 3
 };
 
-//code 39 format of letter F using enum bartype.
+// Array mappings for Code 39 barcode characters
 static char* A_ARRAY_MAP = "031312130";
 static char* B_ARRAY_MAP = "130312130";
 static char* C_ARRAY_MAP = "030312131";
@@ -56,19 +69,17 @@ static char* Z_ARRAY_MAP = "120303131";
 //code 39 format of asterisk using enum bartype.
 static char* ASTERISK_ARRAY_MAP = "121303031";
 
+// Variables to hold sensor readings and barcode detection state
 static uint32_t res = 0;
 static uint16_t prevAvg = 0;
-
 static int i = 0 ;
 static int barcode_arr_index = 1;
-
 char* outputBuffer;
-
 static absolute_time_t blockStart;
 static absolute_time_t blockEnd;
-
 volatile char read_char;
 
+// Structure to classify voltage readings from the barcode
 struct voltageClassification {
     uint16_t voltage;
     // 0 - white
@@ -79,19 +90,20 @@ struct voltageClassification {
     enum bartype type;
 };
 
-// queue for voltageclassifications of length 9.
+// Queue for voltageclassifications of length 9.
 static struct voltageClassification voltageClassifications[BARCODE_BUF_SIZE];
 
-// queue for barcode read of length 3.
+// Queue for barcode read of length 3.
 static char barcodeRead[3];
 
-//function to append to barcodeRead Queue.
+// Function to append to barcodeRead Queue.
 static void appendToBarcodeRead(char barcodeChar) {
     barcodeRead[0] = barcodeRead[1];
     barcodeRead[1] = barcodeRead[2];
     barcodeRead[2] = barcodeChar;
 }
 
+// Check if the current barcode read is valid
 static int isValidBarcode() {
     if (barcodeRead[0] == '*' && barcodeRead[2] == '*') {
         if(barcodeRead[1] != 0) {
@@ -102,6 +114,7 @@ static int isValidBarcode() {
     return 0;
 }
 
+// Check if the barcode read queue is full
 static int isBarcodeFull() {
     if (barcodeRead[0] != 0 && barcodeRead[1] != 0 && barcodeRead[2] != 0) {
         return 1;
@@ -110,13 +123,14 @@ static int isBarcodeFull() {
     return 0;
 }
 
+// Clear the barcode read queue
 static void clearBarcodeRead() {
     barcodeRead[0] = 0;
     barcodeRead[1] = 0;
     barcodeRead[2] = 0;
 }
 
-//function to convert array of integer to string
+// Function to convert array of integer to string
 static char *intArrayToString(int *arr, int size) {
     char *str = malloc(size + 1);
     
@@ -129,7 +143,7 @@ static char *intArrayToString(int *arr, int size) {
     return str;
 }
 
-// function to flush queue 
+// Function to flush queue
 static void flushVoltageClassification() {
     barcode_arr_index = 1;
     blockStart = get_absolute_time();
@@ -146,6 +160,7 @@ static void flushVoltageClassification() {
     voltageClassifications[0] = lastReading;
 }
 
+// Setup function for barcode reading
 void barcode_setup() {
     flushVoltageClassification();
 
@@ -164,6 +179,7 @@ void barcode_setup() {
     blockStart = get_absolute_time();
 }
 
+// Classify barcode elements as thick or thin
 static int* thickThinClassification() {
     //calculate average block length
     int64_t totalBarLength = 0;
@@ -198,7 +214,8 @@ static int* thickThinClassification() {
     //printf("\n\r");
     return barsRead;
 }
-// function to check if queue is full
+
+// Function to check if queue is full
 static int isVoltageClassificationFull() {
     for (int i = 0; i < BARCODE_BUF_SIZE; i++) {
         if (voltageClassifications[i].blackWhite == -1) {
@@ -208,7 +225,7 @@ static int isVoltageClassificationFull() {
     return 1;
 }
 
-//function to compare buffer and the barcodes
+// Function to compare buffer and the barcodes
 static char compareTwoArray () {
     int* barsRead = thickThinClassification();
 
@@ -295,7 +312,7 @@ static char compareTwoArray () {
 }
 
 
-// function to append queue
+// Function to append queue
 static void appendVoltageClassification(struct voltageClassification voltageClassification) {
     voltageClassifications[0] = voltageClassifications[1];
     voltageClassifications[1] = voltageClassifications[2];
@@ -320,10 +337,12 @@ static void appendVoltageClassification(struct voltageClassification voltageClas
     }
 }
 
+// Get the last read barcode character
 char getBarcodeChar() {
     return read_char;
 }
 
+// ADC IRQ handler for reading barcode data
 static void ADC_IRQ_FIFO_HANDLER() {
     // read data from ADC FIFO
     if (!adc_fifo_is_empty()) {
@@ -393,6 +412,7 @@ static void ADC_IRQ_FIFO_HANDLER() {
     irq_clear(ADC_IRQ_FIFO);
 }
 
+// Main loop for processing barcode data
 void barcode_main_loop() {
     //i2c_write_byte('I');
     if (isValidBarcode()) {

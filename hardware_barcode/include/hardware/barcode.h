@@ -1,11 +1,23 @@
+/**
+ * @file barcode.h
+ *
+ * @brief Provides definitions and declarations for barcode processing.
+ *
+ * This header file defines constants and declares functions for barcode processing.
+ * It includes the setup of ADC and GPIO for barcode detection, functions for classifying
+ * the barcode signals, and utility functions for barcode data handling. The file supports
+ * barcode processing and interpretation based on the Code 39 barcode standard.
+ *
+ */
+
 #ifndef _BARCODE_H
 #define _BARCODE_H
 
 #include <stddef.h>
+
+// Constants for barcode processing
 #define TABLE_SIZE 100
-
 #define BAUD_RATE 115200
-
 #define UART_TX_PIN 0
 #define UART_RX_PIN 1
 #define ADC_PIN 26
