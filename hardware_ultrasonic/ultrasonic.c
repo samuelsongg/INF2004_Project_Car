@@ -6,9 +6,6 @@
  * This module contains the implementation of functions necessary for
  * initializing and using an ultrasonic sensor. It includes sensor initialization,
  * triggering pulse, distance measurement, and handling GPIO interrupts.
- *
- * @par
- * COPYRIGHT NOTICE: (c) 2023 Team 61. All rights reserved.
  */
 #include <stdio.h>
 #include "hardware/ultrasonic.h"

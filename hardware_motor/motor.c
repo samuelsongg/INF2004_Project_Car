@@ -2,9 +2,6 @@
  *
  * @brief This module handles motor control functions including initialization,
  * speed setting, and directional movement for the robotic car.
- *
- * @par
- * COPYRIGHT NOTICE: (c) 2023 Team 61. All rights reserved.
  */
 
 #include <stdio.h>
