@@ -9,13 +9,23 @@ uint64_t width;
 int successful_pulse;
 absolute_time_t start_time;
 absolute_time_t end_time;
-uint ultrasonic_distance = -1;  // Initialize final result with an error value
+uint ultrasonic_distance = -1;  // Default value indicating error or no measurement
 
+/**
+ * Retrieves the last measured ultrasonic distance.
+ * 
+ * @param params Optional parameters (unused in this function).
+ * @return The measured ultrasonic distance.
+ */
 uint getUltrasonicFinalResult(void *params) {
     return ultrasonic_distance;
 }
 
-// Function to initialize ultrasonic sensor GPIO pins
+/**
+ * Initializes the GPIO pins used by the ultrasonic sensor.
+ *
+ * @param params Optional parameters (unused in this function).
+ */
 void initUltrasonic(void *params) {
     gpio_init(ULTRASONIC_ECHO);
     gpio_init(ULTRASONIC_TRIG);
@@ -24,14 +34,23 @@ void initUltrasonic(void *params) {
     gpio_set_dir(ULTRASONIC_TRIG, GPIO_OUT);
 }
 
-// Function to trigger the ultrasonic sensor
+/**
+ * Triggers the ultrasonic sensor to emit a pulse.
+ *
+ * @param params Optional parameters (unused in this function).
+ */
 void pulseUltrasonic(void *params) {
     gpio_put(ULTRASONIC_TRIG, 1);
-    vTaskDelay(1);  // Add a brief delay for the ultrasonic pulse
+    vTaskDelay(1);  // Delay to ensure ultrasonic pulse is sent
     gpio_put(ULTRASONIC_TRIG, 0);
 }
 
-// Function to measure distance using the ultrasonic sensor
+/**
+ * Measures the distance using the ultrasonic sensor.
+ *
+ * @param params Optional parameters (unused in this function).
+ * @return The measured distance or -1 if the measurement failed.
+ */
 uint64_t getDistanceUltrasonic(void *params) {
     width = 0;
     successful_pulse = 0;
@@ -56,11 +75,16 @@ uint64_t getDistanceUltrasonic(void *params) {
         return ultrasonic_distance;
     }
     else {
-        return -1;  // Return error value if measurement was unsuccessful
+        return -1;  // Indicates measurement failure
     }
 }
 
-// Callback function for ultrasonic sensor GPIO interrupts
+/**
+ * GPIO callback function for ultrasonic sensor interrupts.
+ *
+ * @param gpio GPIO number.
+ * @param events Type of event that triggered the interrupt.
+ */
 void gpio_callback_ultrasonic(uint gpio, uint32_t events) {
     getDistanceUltrasonic(NULL);
 }
