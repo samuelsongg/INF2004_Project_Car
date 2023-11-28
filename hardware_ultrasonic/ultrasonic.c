@@ -1,3 +1,15 @@
+/** 
+ * @file ultrasonic.c
+ *
+ * @brief Implements functions for interfacing with an ultrasonic sensor.
+ * 
+ * This module contains the implementation of functions necessary for
+ * initializing and using an ultrasonic sensor. It includes sensor initialization,
+ * triggering pulse, distance measurement, and handling GPIO interrupts.
+ *
+ * @par
+ * COPYRIGHT NOTICE: (c) 2023 Team 61. All rights reserved.
+ */
 #include <stdio.h>
 #include "hardware/ultrasonic.h"
 #include "hardware/gpio.h"
@@ -5,6 +17,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
+// Global variables to store measurement data
 uint64_t width;
 int successful_pulse;
 absolute_time_t start_time;
