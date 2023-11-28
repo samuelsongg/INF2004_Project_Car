@@ -1,3 +1,9 @@
+/** @file magnetometer.h
+ *
+ * @brief This header file defines functions and constants for operating a magnetometer sensor.
+ *        It includes functions for initializing the sensor, reading data, and configuring 
+ *        I2C communication.
+*/
 #ifndef _MAGNETOMETER_H
 #define _MAGNETOMETER_H
 
@@ -16,6 +22,6 @@ void read_magnetometer_data(void *params);
 void setup_magnetometer(void *params);
 void read_magnetometer(void *params);
 
-#endif
+#endif /* _MAGNETOMETER_H */
 
 /*** End of file ***/
