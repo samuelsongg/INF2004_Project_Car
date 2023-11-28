@@ -68,9 +68,6 @@ void read_accelerometer_data(void *params) {
     int16_t x_acc = (int16_t)((accel_data[1] << 8) | accel_data[0]) >> 4;
     int16_t y_acc = (int16_t)((accel_data[3] << 8) | accel_data[2]) >> 4;
     int16_t z_acc = (int16_t)((accel_data[5] << 8) | accel_data[4]) >> 4;
-
-    //printf("X: %.4f, Y: %.4f, Z: %.4f\n", x_acc, y_acc, z_acc);
-    // printf("heading angle:", )
 }
 
 /*!
@@ -156,12 +153,6 @@ void read_magnetometer_data(void *params) {
     int16_t z = (data1_4 << 8) | data1_5;
     // (Similar conversions for other axes...)
 
-    // printf("X: %d Gauss, Y: %d Gauss, Z: %d Gauss\n", x, y, z);
-    // static int16_t minX = 0, maxX = 0, minY = 0, maxY = 0;
-    // if (x < minX) minX = x;
-    // if (x > maxX) maxX = x;
-    // if (y < minY) minY = y;
-    // if (y > maxY) maxY = y;
     int16_t minX =  -361, maxX = 329, minY = -769, maxY = 0;
 
     int16_t xOffset = (minX + maxX) / 2;
@@ -169,8 +160,6 @@ void read_magnetometer_data(void *params) {
 
     int16_t x_calibrated = ((data1_0 << 8) | data1_1) - xOffset;
     int16_t y_calibrated = ((data1_2 << 8) | data1_3) - yOffset;
-
-    // printf("minX: %d maxX: %d minY: %d maxY: %d\n", minX, maxX, minY, maxY);
 
     // Calculate the heading angle (in degrees) using the arctan2 function
     double heading_rad = atan2(y_calibrated, x_calibrated);
@@ -194,14 +183,8 @@ void read_magnetometer_data(void *params) {
         heading_deg += 360.0;
     }
 
-    // printf("Heading: %.2f degrees\n", heading_deg);
 
 }
-
-// Function to calculate and display the heading angle
-// void calculate_and_display_heading(int16_t x, int16 y) {
-
-// }
 
 /*!
  * @brief Sets up the magnetometer for use, including initializing I2C communication and configuring the sensor.
@@ -221,8 +204,6 @@ void setup_magnetometer(void *params) {
  * @param[in] params Optional parameters (unused in this function).
  */
 void read_magnetometer(void *params) {
-    // printf("--------------------\n");
-    // calculate_and_display_heading(x, y);
     read_magnetometer_data(NULL);
 }
 
