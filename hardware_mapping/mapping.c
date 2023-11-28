@@ -1,3 +1,11 @@
+/** @file mapping.c
+ *
+ * @brief This module handles the mapping algorithm for the car.
+ *
+ * @par
+ * COPYRIGHT NOTICE: (c) 2023 Team 61. All rights reserved.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "pico/stdlib.h"
@@ -13,6 +21,13 @@
 #define UPDATE 4
 #define SET_NEW_MAP 5
 
+/**
+ * @brief Manipulate or get the value of variables related to the map.
+ *
+ * @param type Type of variable to manipulate (X_POS, Y_POS, MAP_HEIGHT).
+ * @param action Action to perform (INCREMENT, DECREMENT, GET_VALUE).
+ * @return Current value of the specified variable.
+ */
 uint variables(uint type, uint action) {
     static uint posX = 5;
     static uint posY = -1;
@@ -39,6 +54,13 @@ uint variables(uint type, uint action) {
     return 0;
 }
 
+/**
+ * @brief Manipulate or get the map.
+ *
+ * @param action Action to perform (GET_VALUE, UPDATE, SET_NEW_MAP).
+ * @param newMap Pointer to a new map to set, if action is SET_NEW_MAP.
+ * @return Pointer to the current map.
+ */
 char** map(uint action, char** newMap) {
     static char** map;
 
@@ -77,6 +99,11 @@ char** map(uint action, char** newMap) {
     return map;
 }
 
+/**
+ * @brief Update the map based on movement direction.
+ *
+ * @param dir Direction of movement (1: Up, 2: Right, 3: Left, 4: Down).
+ */
 void setMap(uint dir) {
     if (dir == 1) {
         variables(Y_POS, INCREMENT);
@@ -96,16 +123,19 @@ void setMap(uint dir) {
     map(GET_VALUE, NULL)[variables(Y_POS, GET_VALUE)][variables(X_POS, GET_VALUE)] = ' ';
 }
 
+// Structure to represent points in the map.
 typedef struct {
     int row;
     int col;
 } Point;
 
+// Structure to represent nodes in a queue.
 typedef struct {
     Point point;
     int distance;
 } QueueNode;
 
+// Queue structure for BFS.
 typedef struct {
     QueueNode* array;
     int front;
@@ -113,6 +143,7 @@ typedef struct {
     unsigned capacity;
 } Queue;
 
+// Queue-related functions.
 Queue* createQueue(unsigned capacity) {
     Queue* queue = (Queue*)malloc(sizeof(Queue));
     queue->capacity = capacity;
@@ -134,10 +165,24 @@ QueueNode dequeue(Queue* queue) {
     return queue->array[queue->front++];
 }
 
+/**
+ * @brief Check if a cell is within the map boundaries.
+ *
+ * @param row Row index of the cell.
+ * @param col Column index of the cell.
+ * @return 1 if valid, 0 otherwise.
+ */
 int isValid(int row, int col) {
     return (row >= 0) && (row < variables(MAP_HEIGHT, GET_VALUE)) && (col >= 0) && (col < MAX_MAP_WIDTH);
 }
 
+/**
+ * @brief Find the shortest path from start to end points.
+ *
+ * @param start Starting point.
+ * @param end Ending point.
+ * @return The map with the path marked.
+ */
 char** shortestPath(Point start, Point end) {
     int dr[] = {-1, 0, 1, 0};
     int dc[] = {0, 1, 0, -1};
@@ -194,12 +239,18 @@ char** shortestPath(Point start, Point end) {
     return map(GET_VALUE, NULL);
 }
 
+/**
+ * Function to get and mark the shortest path on the map.
+ */
 void getShortestPath(){
     Point start = {.row = 0, .col = 5};
     Point end = {.row = variables(Y_POS, GET_VALUE), .col = variables(X_POS, GET_VALUE)};
     map(SET_NEW_MAP, shortestPath(start, end));
 }
 
+/**
+ * Function to print the current state of the map.
+ */
 void printMap() {
     uint mapHeight = variables(MAP_HEIGHT, GET_VALUE);
     char** currentMap = map(GET_VALUE, NULL);
@@ -212,6 +263,9 @@ void printMap() {
     printf("\n\n");
 }
 
+/**
+ * Function to initialize or update the map.
+ */
 void map_init(){
     map(UPDATE, NULL);
 }
