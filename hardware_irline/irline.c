@@ -1,3 +1,15 @@
+/**
+ * @file irline.c
+ *
+ * @brief Provides functions for interfacing with IR (Infrared) sensors.
+ *
+ * This module contains the implementations necessary for initializing and using IR sensors.
+ * It includes functions for setting up the sensors, reading sensor values, and calculating
+ * IR pulse widths. The module handles GPIO and ADC configurations specific to the
+ * Raspberry Pi Pico platform.
+ *
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>

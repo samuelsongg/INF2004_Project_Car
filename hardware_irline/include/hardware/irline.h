@@ -1,3 +1,16 @@
+/**
+ * @file irline.h
+ *
+ * @brief Provides constants and function declarations for IR line sensors.
+ *
+ * This header file defines constants and declares functions for setting up and reading
+ * from IR (Infrared) line sensors. It includes GPIO pin definitions for the sensors,
+ * constants for color differentiation, and function prototypes for sensor operations.
+ * These functions are utilized in the IR sensor interfacing module, particularly for
+ * robotics applications such as line following or obstacle detection.
+ *
+ */
+
 #ifndef _IRLINE_H
 #define _IRLINE_H
 
