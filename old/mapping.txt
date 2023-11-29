@@ -1,0 +1,482 @@
+// Standard libraries.
+#include <stdio.h>
+#include <stdlib.h> // for barcode codes
+#include <string.h> // for barcode codes
+#include <stddef.h> // for barcode codes
+
+// Pico libraries.
+#include "pico/cyw43_arch.h"
+#include "pico/stdlib.h"
+#include "lwip/ip4_addr.h"
+
+// FreeRTOS libraries.
+#include "FreeRTOS.h"
+#include "task.h"
+#include "ping.h"
+#include "message_buffer.h"
+
+// Hardware libraries.
+#include "hardware/gpio.h"
+#include "hardware/adc.h"
+#include "hardware/pwm.h"
+#include "hardware/timer.h"
+
+// Sensor libraries.
+#include "hardware/motor.h"
+#include "hardware/ultrasonic.h"
+#include "hardware/encoder.h"
+#include "hardware/irline.h"
+#include "hardware/magnetometer.h"
+#include "hardware/mapping.h"
+
+#define mbaTASK_MESSAGE_BUFFER_SIZE       ( 60 )
+int dir = 1;
+
+static MessageBufferHandle_t sendDataLeftIRSensorCMB;
+static MessageBufferHandle_t sendDataRightIRSensorCMB;
+static MessageBufferHandle_t sendDataUltrasonicSensorCMB;
+static MessageBufferHandle_t sendDataMagnetometerSensorCMB;
+static MessageBufferHandle_t sendDataForwardCMB;
+static MessageBufferHandle_t sendDataBackwardCMB;
+static MessageBufferHandle_t sendDataLeftCMB;
+static MessageBufferHandle_t sendDataRightCMB;
+
+void move_wheels(__unused void *params) {
+    initMotor(NULL);
+
+    
+    int ultrasonic_data = 0;
+    bool forward = false;
+    bool backward = false;
+    bool left = false;
+    bool right = false;
+
+    map_init();
+    
+
+    
+    while (true) {
+        setLeftSpeed(0.52);
+        setRightSpeed(0.50);
+        
+        // printf("Left: %d, Right: %d, Forward: %d, Backward: %d\n", left, right, forward, backward);
+
+        // Insert Car Movement Algo...
+        
+
+        // printf("LeftIR: %d, RightIR: %d\n", left_IR_data, right_IR_data);
+        // printf("Ultrasonic: %d\n", ultrasonic_data);
+        // printf("Left encoder: %.2f, Right encoder: %.2f\n", left_encoder_speed, right_encoder_speed);
+
+        // printf("Reading: %.2f\n", magnetometer_reading);
+        
+        // moveForward(NULL);
+        // if (forward) {
+        //     moveForward(NULL);
+        // } else if (left) {
+        //     turnHardLeft(NULL);
+        // } else if (right) {
+        //     turnHardRight(NULL);
+        // } else if (backward) {
+        //     turnHardRight(NULL);
+        // } else {
+        //     stop(NULL);
+        // }
+
+        
+
+        
+
+        xMessageBufferReceive(
+            sendDataUltrasonicSensorCMB,
+            (void *) &ultrasonic_data,
+            sizeof(ultrasonic_data),
+            portMAX_DELAY);
+
+        xMessageBufferReceive(
+            sendDataForwardCMB,
+            (void *) &forward,
+            sizeof(forward),
+            portMAX_DELAY);
+
+        xMessageBufferReceive(
+            sendDataBackwardCMB,
+            (void *) &backward,
+            sizeof(backward),
+            portMAX_DELAY);
+
+        xMessageBufferReceive(
+            sendDataLeftCMB,
+            (void *) &left,
+            sizeof(left),
+            portMAX_DELAY);
+
+        xMessageBufferReceive(
+            sendDataRightCMB,
+            (void *) &right,
+            sizeof(right),
+            portMAX_DELAY);
+
+        
+
+    }
+}
+
+void setDirection(int direction) {
+    /* 1: Facing North, 2: Facing West, 3: Facing East, 4: Facing South */
+    if ((dir == 2 && direction == 2) || (dir == 3 && direction == 3)) {
+        dir = 4;
+    } else if ((dir == 2 && direction == 3) || (dir == 3 && direction == 2) || (dir == 4 && direction == 4)) {
+        dir = 1;
+    } else if ((dir == 3 && direction == 4) || (dir == 4 && direction == 3)) {
+        dir = 2;
+    } else if ((dir == 2 && direction == 4) || (dir == 4 && direction == 2)) {
+        dir = 3;
+    } else {
+        dir = direction;
+    }
+}
+
+void move_direction() {
+    int left_IR_data = 0;
+    int right_IR_data = 0;
+    double magnetometer_reading = 0.0;
+    bool forward = true;
+    bool backward = false;
+    bool left = false;
+    bool right = false;
+    
+    int notchCount = 0;
+    bool getValue = false;
+    bool getPath = true;
+    int turn = 0;
+    bool change = false;
+    // bool change = false;
+    while(true) {
+        notchCount = getLeftNotchCount(NULL);
+        // printf("%d\n", notchCount);
+        // printf("LeftIR: %d, RightIR: %d\n", left_IR_data, right_IR_data);
+        // printf("Reading: %.2f\n", magnetometer_reading);
+        // printf("Left: %d, Right: %d, Forward: %d, Backward: %d\n", left, right, forward, backward);
+
+        if (!change) {
+            if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data > COLOUR_CUTOFF_VALUE && turn == 0) {
+                setDirection(3);
+                turn++;
+                change = true;
+                backward = false;
+                forward = false;
+                left = false;
+                right = true;
+                printf("Turn Right\n");
+            } else if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data > COLOUR_CUTOFF_VALUE && turn == 1) {
+                setDirection(4);
+                turn ++;
+                change = true;
+                backward = true;
+                forward = false;
+                left = false;
+                right = false;
+                printf("Turn 180 Degrees\n");
+            } else if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data > COLOUR_CUTOFF_VALUE && turn == 2) {
+                setDirection(2);
+                turn = 0;
+                change = true;
+                backward = false;
+                forward = false;
+                left = true;
+                right = false;
+                printf("Turn Left\n");
+            } else {
+                forward = true;
+                backward = false;
+                left = false;
+                right = false;
+            }
+        }
+        if (change) {
+            if (left && magnetometer_reading > 260 && magnetometer_reading < 280) {
+                resetDirection();
+                left = false;
+                forward = true;
+                change = false;
+            } else if (right && magnetometer_reading > 80 && magnetometer_reading < 100) {
+                resetDirection();
+                right = false;
+                forward = true;
+                change = false;
+            } else if (backward && magnetometer_reading > 170 && magnetometer_reading < 190) {
+                resetDirection();
+                forward = true;
+                backward = false;
+                change = false;
+            } 
+
+        }
+
+        if (notchCount % 18 == 0 && getValue) {
+            turn = 0;
+            getValue = false;
+            setMap(dir);
+            printMap();
+        }
+        if (notchCount % 18 != 0 && !getValue) {
+            getValue = true;
+        }
+
+        if ((left_IR_data > 3000 && right_IR_data > 3000) && getPath) {
+            getPath = false;
+            getShortestPath();
+            printMap();
+        }
+
+        // if (!change) {
+        //     if (left_IR_data < COLOUR_CUTOFF_VALUE && right_IR_data > COLOUR_CUTOFF_VALUE) {
+        //         change = true;
+        //         left = true;
+        //         right = false;
+        //         forward = false;
+        //         backward = false;
+        //     } else if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data < COLOUR_CUTOFF_VALUE) {
+        //         change = true;
+        //         right = true;
+        //         left = false;
+        //         forward = false;
+        //         backward = false;
+        //     } else if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data > COLOUR_CUTOFF_VALUE) {
+        //         change = true;
+        //         backward = true;
+        //         forward = false;
+        //         left = false;
+        //         right = false;
+        //     } else {
+        //         forward = true;
+        //         backward = false;
+        //         left = false;
+        //         right = false;
+        //         if (magnetometer_reading > 1 && magnetometer_reading < 10){
+        //             setRightSpeed(0.51);
+        //         }
+        //         if (magnetometer_reading > 350 && magnetometer_reading < 359){
+        //             setLeftSpeed(0.53);
+        //         }
+        //     }
+        // }
+        // if (change) {
+        //     if (left && magnetometer_reading > 260 && magnetometer_reading < 300) {
+        //         resetDirection();
+        //         left = false;
+        //         forward = true;
+        //         change = false;
+        //     } else if (right && magnetometer_reading > 60 && magnetometer_reading < 100) {
+        //         resetDirection();
+        //         right = false;
+        //         forward = true;
+        //         change = false;
+        //     } else if (backward && magnetometer_reading > 150 && magnetometer_reading < 190) {
+        //         resetDirection();
+        //         forward = true;
+        //         backward = false;
+        //         change = false;
+        //     } 
+
+        // }
+
+        // if (magnetometer_reading > 1 && magnetometer_reading < 10){
+        //     setLeftSpeed(0.53);
+        // }
+        // if (magnetometer_reading > 350 && magnetometer_reading < 359){
+        //     setRightSpeed(0.51);
+        // }
+        // if (left_IR_data > COLOUR_CUTOFF_VALUE) {
+        //     resetDirection();
+        //     // turnHardRight(NULL);
+        // }
+        // if (right_IR_data > COLOUR_CUTOFF_VALUE) {
+        //     resetDirection();
+        //     // turnHardLeft(NULL);
+        // }
+        xMessageBufferReceive(
+            sendDataLeftIRSensorCMB,
+            (void *) &left_IR_data,
+            sizeof(left_IR_data),
+            portMAX_DELAY);
+
+        xMessageBufferReceive(
+            sendDataRightIRSensorCMB,
+            (void *) &right_IR_data,
+            sizeof(right_IR_data),
+            portMAX_DELAY);
+
+        xMessageBufferReceive(
+            sendDataMagnetometerSensorCMB,
+            (void *) &magnetometer_reading,
+            sizeof(magnetometer_reading),
+            portMAX_DELAY);
+
+        xMessageBufferSend(
+            sendDataForwardCMB,
+            (void *) &forward,
+            sizeof(forward),
+            0);
+
+        xMessageBufferSend(
+            sendDataBackwardCMB,
+            (void *) &backward,
+            sizeof(backward),
+            0);
+
+        xMessageBufferSend(
+            sendDataLeftCMB,
+            (void *) &left,
+            sizeof(left),
+            0);
+
+        xMessageBufferSend(
+            sendDataRightCMB,
+            (void *) &right,
+            sizeof(right),
+            0);
+
+    }
+}
+
+
+
+
+void gpio_callback(uint gpio, uint32_t events) {
+    if (gpio == LEFT_ENCODER_PIN) {
+        leftEncoder(NULL);
+    }
+
+    if (gpio == RIGHT_ENCODER_PIN) {
+        rightEncoder(NULL);
+    }
+
+    if (gpio == ULTRASONIC_ECHO) {
+        static uint ultrasonic_reading = 0;
+        ultrasonic_reading = getDistanceUltrasonic(NULL);
+
+        // -1 means no successful pulse.
+        if (ultrasonic_reading != -1) {
+            xMessageBufferSend(
+                sendDataUltrasonicSensorCMB,
+                (void *) &ultrasonic_reading,
+                sizeof(ultrasonic_reading),
+                0);
+
+            // Troubleshooting purposes.
+        //    printf("Ultrasonic Pulse Length: %lldcm\n", final_result);
+            
+            ultrasonic_reading = -1; // Reset to allow for next pulse.
+        }
+    }
+}
+
+void read_wheel_encoder(__unused void *params) {
+    gpio_set_irq_enabled_with_callback(LEFT_ENCODER_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_callback);
+    gpio_set_irq_enabled_with_callback(RIGHT_ENCODER_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_callback);
+    while (true) {
+        vTaskDelay(10);
+    }
+}
+
+void read_magnetometer() {
+    setup();
+    while (true) {
+        // vTaskDelay(10);
+        double magnetometer_reading = read_magnetometer_data();
+        // printf("Heading direction: %.2f\n", magnetometer_reading);
+
+        xMessageBufferSend(
+            sendDataMagnetometerSensorCMB,
+            (void *) &magnetometer_reading,
+            sizeof(magnetometer_reading),
+            0);
+    }
+}
+
+void read_ir_sensor(__unused void *params) {
+    ir_setup(NULL);
+    // initHashMap(NULL); // Insert key-value pairs for barcode scanner.
+
+    while (true) {
+        vTaskDelay(10);
+
+        read_ir(NULL);
+
+        xMessageBufferSend(
+            sendDataLeftIRSensorCMB,
+            (void *) &l_ir_result,
+            sizeof(l_ir_result),
+            0);
+
+        xMessageBufferSend(
+            sendDataRightIRSensorCMB,
+            (void *) &r_ir_result,
+            sizeof(r_ir_result),
+            0);
+
+        // Troubleshooting purposes.
+        //printf("Left ADC Result: %d\t Right ADC Result: %d\n", l_ir_result, r_ir_result);
+        
+        // For lab demo.
+        // if (ir_pulse_width > 10) {
+        //     if (ir_pulse_width > 1000000) {
+        //         printf("Left ADC Result: %d\t Right ADC Result: %d\t Line Thickness: Thick\n", l_ir_result, r_ir_result);
+        //     }
+        //     else {
+        //         printf("Left ADC Result: %d\t Right ADC Result: %d\t Line Thickness: Thin\n", l_ir_result, r_ir_result);
+        //     }
+        // }
+    }
+}
+
+void read_ultrasonic_sensor(__unused void *params) {
+    initUltrasonic(NULL);
+    // When ultrasonic sensor detects an object, calls gpio_callback.
+    // gpio_callback calls getDistanceUltrasonic to get the object's distance.
+    gpio_set_irq_enabled_with_callback(ULTRASONIC_ECHO, GPIO_IRQ_EDGE_RISE, true, &gpio_callback);
+
+    while (true) {
+        vTaskDelay(10);
+        // Function to pulse ultrasonic sensor.
+        pulseUltrasonic(NULL);
+    }
+}
+
+void vLaunch(void) {
+    TaskHandle_t moveWheelsTask;
+    xTaskCreate(move_wheels, "MoveWheelsThread", configMINIMAL_STACK_SIZE, NULL, 9, &moveWheelsTask);
+    TaskHandle_t readIrSensorTask;
+    xTaskCreate(read_ir_sensor, "ReadIrSensorThread", configMINIMAL_STACK_SIZE, NULL, 8, &readIrSensorTask);
+    TaskHandle_t readUltrasonicSensorTask;
+    xTaskCreate(read_ultrasonic_sensor, "ReadUltrasonicSensorThread", configMINIMAL_STACK_SIZE, NULL, 6, &readUltrasonicSensorTask);
+    TaskHandle_t readWheelEncoderTask;
+    xTaskCreate(read_wheel_encoder, "ReadWheelEncoderThread", configMINIMAL_STACK_SIZE, NULL, 5, &readWheelEncoderTask);
+    TaskHandle_t readMagnetometerTask;
+    xTaskCreate(read_magnetometer, "ReadMagnetometerThread", configMINIMAL_STACK_SIZE, NULL, 4, &readMagnetometerTask);
+    TaskHandle_t moveDirectionTask;
+    xTaskCreate(move_direction, "MoveDirectionThread", configMINIMAL_STACK_SIZE, NULL, 4, &moveDirectionTask);
+
+    sendDataLeftIRSensorCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
+    sendDataRightIRSensorCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
+    sendDataUltrasonicSensorCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
+    sendDataMagnetometerSensorCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
+    sendDataForwardCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
+    sendDataBackwardCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
+    sendDataLeftCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
+    sendDataRightCMB = xMessageBufferCreate(mbaTASK_MESSAGE_BUFFER_SIZE);
+
+    /* Start the tasks and timer running. */
+    vTaskStartScheduler();
+}
+
+int main(void)
+{
+    stdio_init_all();
+
+    vLaunch();
+
+    return 0;
+}
