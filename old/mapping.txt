@@ -151,151 +151,140 @@ void move_direction() {
     bool getPath = true;
     int turn = 0;
     bool change = false;
+
+    bool after = false;
+    bool move = true;
+    int x = 5;
+    int y = -1;
+    int notchCount2 = 0;
     // bool change = false;
     while(true) {
-        notchCount = getLeftNotchCount(NULL);
+        
         // printf("%d\n", notchCount);
         // printf("LeftIR: %d, RightIR: %d\n", left_IR_data, right_IR_data);
         // printf("Reading: %.2f\n", magnetometer_reading);
         // printf("Left: %d, Right: %d, Forward: %d, Backward: %d\n", left, right, forward, backward);
 
-        if (!change) {
-            if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data > COLOUR_CUTOFF_VALUE && turn == 0) {
-                setDirection(3);
-                turn++;
-                change = true;
-                backward = false;
-                forward = false;
-                left = false;
-                right = true;
-                printf("Turn Right\n");
-            } else if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data > COLOUR_CUTOFF_VALUE && turn == 1) {
-                setDirection(4);
-                turn ++;
-                change = true;
-                backward = true;
-                forward = false;
-                left = false;
-                right = false;
-                printf("Turn 180 Degrees\n");
-            } else if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data > COLOUR_CUTOFF_VALUE && turn == 2) {
-                setDirection(2);
-                turn = 0;
-                change = true;
-                backward = false;
-                forward = false;
-                left = true;
-                right = false;
-                printf("Turn Left\n");
-            } else {
-                forward = true;
-                backward = false;
-                left = false;
-                right = false;
+        if (!after) {
+            notchCount = getLeftNotchCount(NULL);
+            if (!change) {
+                if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data > COLOUR_CUTOFF_VALUE && turn == 0) {
+                    setDirection(3);
+                    turn++;
+                    change = true;
+                    backward = false;
+                    forward = false;
+                    left = false;
+                    right = true;
+                    printf("Turn Right\n");
+                } else if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data > COLOUR_CUTOFF_VALUE && turn == 1) {
+                    setDirection(4);
+                    turn ++;
+                    change = true;
+                    backward = true;
+                    forward = false;
+                    left = false;
+                    right = false;
+                    printf("Turn 180 Degrees\n");
+                } else if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data > COLOUR_CUTOFF_VALUE && turn == 2) {
+                    setDirection(2);
+                    turn = 0;
+                    change = true;
+                    backward = false;
+                    forward = false;
+                    left = true;
+                    right = false;
+                    printf("Turn Left\n");
+                } else {
+                    forward = true;
+                    backward = false;
+                    left = false;
+                    right = false;
+                }
             }
+            if (change) {
+                if (left && magnetometer_reading > 260 && magnetometer_reading < 280) {
+                    resetDirection();
+                    left = false;
+                    forward = true;
+                    change = false;
+                } else if (right && magnetometer_reading > 80 && magnetometer_reading < 100) {
+                    resetDirection();
+                    right = false;
+                    forward = true;
+                    change = false;
+                } else if (backward && magnetometer_reading > 170 && magnetometer_reading < 190) {
+                    resetDirection();
+                    forward = true;
+                    backward = false;
+                    change = false;
+                } 
+
+            }
+
+            if (notchCount % 18 == 0 && getValue) {
+                turn = 0;
+                getValue = false;
+                setMap(dir);
+                printMap();
+            }
+            if (notchCount % 18 != 0 && !getValue) {
+                getValue = true;
+            }
+
+            if ((left_IR_data > 3000 && right_IR_data > 3000) && getPath) {
+                getPath = false;
+                after = true;
+                dir = 1;
+                getShortestPath();
+                printMap();
+            }
+        } else if (after && left_IR_data < 1000 && right_IR_data < 1000) {
+            notchCount2 = notchCount - getLeftNotchCount(NULL);
+            if (notchCount2 % 18 == 0 && move) {
+                move = false;
+                if (map(GET_VALUE, NULL)[y + 1][x] == '+') {
+                    if (dir == 1) {
+                        printf("Move Forward\n");
+                    } else if (dir == 2) {
+                        printf("Turn Right\n");
+                        printf("Move Forward\n");
+                    } else if (dir == 3) {
+                        printf("Turn Left\n");
+                        printf("Move Forward\n");
+                    }
+                    dir = 1;
+                    y++;
+                } else if (map(GET_VALUE, NULL)[y][x - 1] == '+') {
+                    if (dir == 1) {
+                        printf("Turn Right\n");
+                        printf("Move Forward\n");
+                    } else if (dir == 3) {
+                        printf("Move Forward\n");
+                    } else if (dir == 4) {
+                        printf("Turn Left\n");
+                        printf("Move Forward\n");
+                    }
+                    dir = 3;
+                    x--;
+                } else if (map(GET_VALUE, NULL)[y][x + 1] == '+') {
+                    if (dir == 1) {
+                        printf("Turn Left\n");
+                        printf("Move Forward\n");
+                    } else if (dir == 2) {
+                        printf("Move Forward\n");
+                    } else if (dir == 4) {
+                        printf("Turn Right\n");
+                        printf("Move Forward\n");
+                    }
+                    dir = 2;
+                    x++;
+                }
+
+            }
+            if (notchCount2 % 18 != 0 && !move) { move = true; }
         }
-        if (change) {
-            if (left && magnetometer_reading > 260 && magnetometer_reading < 280) {
-                resetDirection();
-                left = false;
-                forward = true;
-                change = false;
-            } else if (right && magnetometer_reading > 80 && magnetometer_reading < 100) {
-                resetDirection();
-                right = false;
-                forward = true;
-                change = false;
-            } else if (backward && magnetometer_reading > 170 && magnetometer_reading < 190) {
-                resetDirection();
-                forward = true;
-                backward = false;
-                change = false;
-            } 
 
-        }
-
-        if (notchCount % 18 == 0 && getValue) {
-            turn = 0;
-            getValue = false;
-            setMap(dir);
-            printMap();
-        }
-        if (notchCount % 18 != 0 && !getValue) {
-            getValue = true;
-        }
-
-        if ((left_IR_data > 3000 && right_IR_data > 3000) && getPath) {
-            getPath = false;
-            getShortestPath();
-            printMap();
-        }
-
-        // if (!change) {
-        //     if (left_IR_data < COLOUR_CUTOFF_VALUE && right_IR_data > COLOUR_CUTOFF_VALUE) {
-        //         change = true;
-        //         left = true;
-        //         right = false;
-        //         forward = false;
-        //         backward = false;
-        //     } else if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data < COLOUR_CUTOFF_VALUE) {
-        //         change = true;
-        //         right = true;
-        //         left = false;
-        //         forward = false;
-        //         backward = false;
-        //     } else if (left_IR_data > COLOUR_CUTOFF_VALUE && right_IR_data > COLOUR_CUTOFF_VALUE) {
-        //         change = true;
-        //         backward = true;
-        //         forward = false;
-        //         left = false;
-        //         right = false;
-        //     } else {
-        //         forward = true;
-        //         backward = false;
-        //         left = false;
-        //         right = false;
-        //         if (magnetometer_reading > 1 && magnetometer_reading < 10){
-        //             setRightSpeed(0.51);
-        //         }
-        //         if (magnetometer_reading > 350 && magnetometer_reading < 359){
-        //             setLeftSpeed(0.53);
-        //         }
-        //     }
-        // }
-        // if (change) {
-        //     if (left && magnetometer_reading > 260 && magnetometer_reading < 300) {
-        //         resetDirection();
-        //         left = false;
-        //         forward = true;
-        //         change = false;
-        //     } else if (right && magnetometer_reading > 60 && magnetometer_reading < 100) {
-        //         resetDirection();
-        //         right = false;
-        //         forward = true;
-        //         change = false;
-        //     } else if (backward && magnetometer_reading > 150 && magnetometer_reading < 190) {
-        //         resetDirection();
-        //         forward = true;
-        //         backward = false;
-        //         change = false;
-        //     } 
-
-        // }
-
-        // if (magnetometer_reading > 1 && magnetometer_reading < 10){
-        //     setLeftSpeed(0.53);
-        // }
-        // if (magnetometer_reading > 350 && magnetometer_reading < 359){
-        //     setRightSpeed(0.51);
-        // }
-        // if (left_IR_data > COLOUR_CUTOFF_VALUE) {
-        //     resetDirection();
-        //     // turnHardRight(NULL);
-        // }
-        // if (right_IR_data > COLOUR_CUTOFF_VALUE) {
-        //     resetDirection();
-        //     // turnHardLeft(NULL);
-        // }
         xMessageBufferReceive(
             sendDataLeftIRSensorCMB,
             (void *) &left_IR_data,
